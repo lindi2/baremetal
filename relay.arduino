@@ -1,0 +1,29 @@
+/*
+  Simple Arduino program for controlling a relay. This is used to
+  press the power button of the target machine.
+*/
+
+const int relay = 11;
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(relay, OUTPUT);
+    digitalWrite(relay, LOW);
+}
+
+void loop() {
+    byte ch;
+
+    if (Serial.available()) {
+        ch = Serial.read();
+        if (ch == 'r') {
+            digitalWrite(relay, HIGH);
+            delay(1500);
+            digitalWrite(relay, LOW);
+        } else if (ch == 'R') {
+            digitalWrite(relay, HIGH);
+            delay(6000);
+            digitalWrite(relay, LOW);
+        }
+    }
+}

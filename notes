@@ -1,0 +1,77 @@
+/etc/network/interfaces.d/baremetal
+
+apt-get install isc-dhcp-server
+
+/etc/default/isc-dhcp-server
+
+/etc/dhcp/dhcpd.conf
+
+apt-get install tftpd-hpa
+
+/etc/default/tftpd-hpa
+
+apt-get install pxelinux
+
+cp /usr/lib/PXELINUX/lpxelinux.0 /var/www/html/baremetal/tftp/
+
+/var/www/html/baremetal/tftp/pxelinux.cfg/default
+
+apt-get install syslinux
+
+cp /usr/lib/syslinux/modules/bios/ldlinux.c32 /var/www/html/baremetal/tftp/
+
+apt-get install apache2
+
+cp /boot/vmlinuz-4.19.0-9-amd64 /var/www/html/baremetal/
+
+apt-get install etherwake
+
+/etc/udev/rules.d/55_avr_remote_power.rules
+
+/usr/local/bin/remote_power
+
+~/.remotepower
+~/.remotepowerrc
+
+remote_power baremetal on
+
+wakeonlan -i 10.44.12.255 3c:97:0e:7d:ee:50
+
+/etc/initramfs-tools.baremetal
+
+/usr/sbin/mkinitramfs -d /etc/initramfs-tools.baremetal -o /var/www/html/baremetal/initrd.img-4.19.0-9-amd64.baremetal
+
+for i in $(seq 5); do remote_power baremetal off; sleep 7; done; for i in $(seq 5); do remote_power baremetal on; sleep 7; sudo etherwake -i enx0050b607db1f 3c:97:0e:7d:ee:50; done
+
+# 6m44s 4.0G May 24 22:26 baremetal.img
+# 31s   265M May 24 22:23 tboot-test-image.sparse.img.gz
+
+sudo systemctl stop tftpd-hpa
+
+apt-get install ser2net
+
+/etc/ser2net.conf
+
+/etc/udev/rules.d/55_arduino_relay.rules
+/etc/udev/rules.d/55_serial_console.rules
+
+net.ifnames=0
+
+systemctl enable baremetal-report.service
+
+# gigabit ethernet
+
+# make baremetal.sh more dumb. just run commands sent over network.
+
+sudo apt-get install python3-pip
+
+pip3 install --user librosa
+
+sudo apt-get install lm-sensors
+
+sudo apt-get install ffmpeg
+
+# /etc/gdm3/greeter.dconf-defaults
+[org/gnome/settings-daemon/plugins/power]
+sleep-inactive-ac-timeout=0
+
