@@ -24,3 +24,6 @@ ability to specify job details over the http api
 - network restrictions?
 hdmi capture card
 hard timeout and soft timeout that can be pinged with http commands
+add support for multiple machines and some ability to select which one to use
+add one virtual machine example
+boot target machine to image writing mode already in advance
