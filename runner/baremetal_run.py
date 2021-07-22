@@ -12,8 +12,6 @@ import hashlib
 import shutil
 import pathlib
 
-IMAGE_FILENAME = "/var/www/html/baremetal/baremetal.img.lzo"
-
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", stream=sys.stderr, level="DEBUG")
 logger = logging.getLogger("baremetal")
 
@@ -24,13 +22,13 @@ class Trace:
         self.tcpdump = None
     def __enter__(self):
         tooldir = pathlib.Path(__file__).parent.absolute()
-        self.processes.append(subprocess.Popen(["{}/baremetal_logger.py".format(tooldir), "{}/log.json".format(self.tmpdir)]))
-        self.processes.append(subprocess.Popen(["{}/serial_logger.py".format(tooldir), "{}/serial.log".format(self.tmpdir)]))
+        self.processes.append(subprocess.Popen(["{}/baremetal_logger.py".format(tooldir), "--listen-port", str(config["log_port"]), "--output", "{}/log.json".format(self.tmpdir)]))
+        self.processes.append(subprocess.Popen(["{}/serial_logger.py".format(tooldir), "--port", str(config["serial_port"]), "--output", "{}/serial.log".format(self.tmpdir)]))
         return self
     def start_network_capture(self):
-        self.tcpdump = subprocess.Popen(["sudo", "tcpdump", "-i", "enx0050b607db1f", "-s", "0", "-U", "-w", "{}/network.pcap".format(self.tmpdir)])
+        self.tcpdump = subprocess.Popen(["sudo", "ip", "netns", "exec", config["netns"], "tcpdump", "-i", config["iface"], "-s", "0", "-U", "-w", "{}/network.pcap".format(self.tmpdir)], stderr=subprocess.DEVNULL)
     def start_audio_capture(self):
-        self.processes.append(subprocess.Popen(["parecord", "--file-format=wav", "--device", "alsa_input.usb-1130_USB_AUDIO-00.analog-mono", "{}/audio.wav".format(self.tmpdir)]))
+        self.processes.append(subprocess.Popen(["parecord", "--file-format=wav", "--device", config["audio_device"], "{}/audio.wav".format(self.tmpdir)]))
         self.audio_start_time = time.time()
     def analyze_audio(self):
         tooldir = pathlib.Path(__file__).parent.absolute()
@@ -38,7 +36,7 @@ class Trace:
         os.unlink("{}/audio.wav".format(self.tmpdir))
     def start_video_capture(self):
         tooldir = pathlib.Path(__file__).parent.absolute()
-        self.processes.append(subprocess.Popen(["ffmpeg", "-f", "video4linux2", "-s", "1920x1080", "-i", "/dev/video0", "-c:v", "vp8", "{}/video1.webm".format(self.tmpdir)], stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        self.processes.append(subprocess.Popen(["ffmpeg", "-f", "video4linux2", "-s", config["video_resolution"], "-i", config["video_device"], "-c:v", "vp8", "{}/video.webm".format(self.tmpdir)], stdout=subprocess.PIPE, stderr=subprocess.PIPE))
     def netboot_exit_status(self):
         with open("{}/log.json".format(self.tmpdir)) as log:
             for line in log.readlines():
@@ -73,74 +71,64 @@ class Trace:
         return False
 
 def get_net_carrier():
-    with open("/sys/class/net/enx0050b607db1f/carrier") as f:
-        return int(f.read()) != 0
-    
-def get_net_speed():
-    with open("/sys/class/net/enx0050b607db1f/speed") as f:
-        return int(f.read())
+    tooldir = pathlib.Path(__file__).parent.absolute()
+    cmd = config["link_status_command"]
+    cwd = os.path.dirname(args.config)
+    return "Up" in subprocess.check_output(cmd, shell=True, cwd=cwd).decode("utf-8")
 
 def set_power(state):
     logger.info("set_power {}".format(state))
     if state:
         while not get_net_carrier():
-            logger.debug("calling remote_power")
-            subprocess.check_call(["remote_power", "baremetal", "on"])
+            logger.debug("turning power on")
+            subprocess.check_call(config["power_on_command"], shell=True)
             time.sleep(1)
     else:
         if get_net_carrier():
             while get_net_carrier():
-                logger.debug("calling remote_power")
-                subprocess.check_call(["remote_power", "baremetal", "off"])
+                logger.debug("turning power off")
+                subprocess.check_call(config["power_off_command"], shell=True)
                 time.sleep(1)
         else:
-            for i in range(7):
-                subprocess.check_call(["remote_power", "baremetal", "off"])
+            for i in range(3):
+                subprocess.check_call(config["power_off_command"], shell=True)
                 time.sleep(3)
     logger.debug("set_power {} is done".format(state))
 
-def press_power_button(duration):
-    logger.info("press_power_button {}".format(duration))
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("10.44.12.1", 2101))
-    if duration == 1500:
-        s.sendall(b"r")
-    elif duration == 6000:
-        s.sendall(b"R")
-    else:
-        assert False
-    s.close()
+def press_power_button():
+    logger.info("press_power_button")
+    subprocess.check_call(config["power_button_command"], shell=True)
     
 def set_image(filename, lzop_compressed):
     logger.info("set_image {}".format(filename))
-    if os.path.exists(IMAGE_FILENAME):
-        os.unlink(IMAGE_FILENAME)
+    if os.path.exists(config["image_filename"]):
+        os.unlink(config["image_filename"])
     if not lzop_compressed:
-        subprocess.check_call(["lzop", "-o", IMAGE_FILENAME, filename])
+        subprocess.check_call(["lzop", "-o", config["image_filename"], filename])
     else:
-        shutil.copyfile(filename, IMAGE_FILENAME)
+        shutil.copyfile(filename, config["image_filename"])
 
 def inject_log_event(buf):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("10.44.12.1", 2500))
+    s.connect(("localhost", config["log_port"]))
     s.sendall(buf.encode("utf-8"))
     s.close()
 
 def send_command(buf):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("10.44.12.2", 9000))
+    s.connect(("localhost", config["control_port"]))
     s.sendall(buf.encode("utf-8"))
     s.close()
     
 def set_netboot(state):
     logger.info("set_netboot {}".format(state))
     if state:
-        if not os.path.exists("/var/www/html/baremetal/tftp/lpxelinux.0"):
-            os.symlink("lpxelinux.0.real",
-                       "/var/www/html/baremetal/tftp/lpxelinux.0")
+        if not os.path.exists(config["netboot_symlink"]):
+            os.symlink(config["netboot_symlink_target"],
+                       config["netboot_symlink"])
     else:
-        if os.path.exists("/var/www/html/baremetal/tftp/lpxelinux.0"):
-            os.unlink("/var/www/html/baremetal/tftp/lpxelinux.0")
+        if os.path.exists(config["netboot_symlink"]):
+            os.unlink(config["netboot_symlink"])
 
 def sha256(filename):
     with open(filename, "rb") as f:
@@ -153,13 +141,6 @@ def sha256(filename):
                 break
         return h.hexdigest()
 
-def restart_services():
-    for i in ["isc-dhcp-server", "tftpd-hpa", "ser2net"]:
-        subprocess.check_call(["sudo", "systemctl", "stop", i])
-    time.sleep(1)
-    for i in ["isc-dhcp-server", "tftpd-hpa", "ser2net"]:
-        subprocess.check_call(["sudo", "systemctl", "start", i])
-    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Run image on real hardware and return output")
     parser.add_argument("-o", "--output", metavar="TARFILE", required=True, help="Write output to FILE")
@@ -169,10 +150,13 @@ if __name__ == "__main__":
     parser.add_argument("--audio", action="store_true", help="Record audio")
     parser.add_argument("--lzop", action="store_true", help="Image is already lzop compressed")
     parser.add_argument("--video", action="store_true", help="Record video")
+    parser.add_argument("--config", required=True, help="Configuration file")
     parser.add_argument("image", metavar="FILE", help="Disk image to run")
     args = parser.parse_args()
 
-    restart_services()
+    with open(args.config) as f:
+        config = json.load(f)
+
     set_power(False)
     with Trace() as t:
         inject_log_event("log Preparing to boot {} (sha256 {})".format(args.image, sha256(args.image)))
@@ -182,8 +166,8 @@ if __name__ == "__main__":
         set_netboot(True)
         inject_log_event("log Turning power relay on")
         set_power(True)
-        inject_log_event("log Pressing power button for 1500 ms")
-        press_power_button(1500)
+        inject_log_event("log Pressing power button")
+        press_power_button()
         while t.netboot_exit_status() == None:
             time.sleep(1)
         assert t.netboot_exit_status() == 0
@@ -210,8 +194,8 @@ if __name__ == "__main__":
             inject_log_event("log Enabling audio recording")
             t.start_audio_capture()
         if not args.reboot:
-            inject_log_event("log Pressing power button for 1500 ms")
-            press_power_button(1500)
+            inject_log_event("log Pressing power button")
+            press_power_button()
         start = time.time()
         while t.exit_status() == None:
             if args.timeout and time.time() - start > args.timeout:
