@@ -1,10 +1,54 @@
 #!/bin/bash
+set -x
+set -e
 
-sudo apt install isc-dhcp-server tftpd-hpa syslinux-common pxelinux ffmpeg tcpdump pulseaudio-utils python3-pip
-pip3 install --user librosa
+sudo apt install isc-dhcp-server tftpd-hpa syslinux-common pxelinux ffmpeg tcpdump pulseaudio-utils python3-pip ser2net socat vlan uuid-runtime python3-flask curl
+sudo systemctl disable --now ser2net
+#pip3 install --user librosa
+
+sudo dd of=/etc/network/interfaces <<EOF
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+source /etc/network/interfaces.d/*
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+EOF
+
+sudo dd of=/etc/network/interfaces.d/baremetal <<EOF
+auto vlan1
+iface vlan1 inet static
+ vlan-raw-device enp3s0
+ address 192.168.1.1
+ netmask 255.255.255.0
+
+auto vlan2
+iface vlan2 inet dhcp
+ vlan-raw-device enp3s0
+
+auto vlan3
+iface vlan3 inet static
+ vlan-raw-device enp3s0
+ address 10.44.13.1
+ netmask 255.255.255.0
+
+auto vlan4
+iface vlan4 inet manual
+ vlan-raw-device enp3s0
+
+auto vlan5
+iface vlan5 inet manual
+ vlan-raw-device enp3s0
+EOF
+sudo ifup vlan2
+sudo ifup vlan1
+sudo ifup vlan3
+
 
 for i in 4 5; do
-    if sudo ip netns exec ns_vlan$i true; then
+    if sudo ip netns exec ns_vlan$i true 2> /dev/null; then
 	# Already configured
 	continue
     fi
