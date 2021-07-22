@@ -8,6 +8,7 @@ import argparse
 import uuid
 import re
 import os
+import json
 
 def create_app(args):
     app = Flask(__name__)
@@ -38,9 +39,18 @@ def create_app(args):
     @app.route("/", methods=["POST"])
     def job_create():
         check_api_key()
+        if request.json is None:
+            abort(400, "JSON body is required")
+        if "machine" not in request.json:
+            abort(400, "Required parameter machine was not specified")
+        if request.json["machine"] not in config["machines"]:
+            abort(400, "Requested machine does not exist")
         job_id = str(uuid.uuid4())
         job_dir = os.path.join(args.queue_dir, job_id)
         os.mkdir(job_dir)
+        machine_file = os.path.join(job_dir, "machine")
+        with open(machine_file, "w") as f:
+            f.write(request.json["machine"])
         set_state(job_id, "created")
         print("Created job {}".format(job_id))
         return jsonify({"job_id": job_id})
@@ -89,9 +99,11 @@ def create_app(args):
         image_file = os.path.join(job_dir, "image.lzo")
         results_file = os.path.join(job_dir, "results.tar")
         state_file = os.path.join(job_dir, "state")
+        machine_file = os.path.join(job_dir, "machine")
         os.unlink(image_file)
         os.unlink(results_file)
         os.unlink(state_file)
+        os.unlink(machine_file)
         os.rmdir(job_dir)
         return jsonify({"status": "OK"})
 
@@ -103,7 +115,11 @@ if __name__ == "__main__":
     parser.add_argument("--listen-port", type=int, default=3000, metavar="PORT", help="Listen on TCP port PORT")
     parser.add_argument("--api-keys", metavar="FILE", required=True, help="List of files with valid API keys")
     parser.add_argument("--queue-dir", metavar="DIR", required=True, help="Directory for queue")
+    parser.add_argument("--config", required=True, help="Configuration file to use")
     args = parser.parse_args()
+
+    with open(args.config) as f:
+        config = json.load(f)
 
     app = create_app(args)
     app.run(host=args.listen_address, port=args.listen_port)

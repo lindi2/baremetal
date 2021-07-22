@@ -4,12 +4,14 @@ import time
 import subprocess
 import os
 import pathlib
+import json
 
 def process_jobs(args):
     processed = 0
     for job_id in os.listdir(args.queue_dir):
         job_dir = os.path.join(args.queue_dir, job_id)
         state_file = os.path.join(job_dir, "state")
+        machine_file = os.path.join(job_dir, "machine")
         image_file = os.path.join(job_dir, "image.lzo")
         results_file = os.path.join(job_dir, "results.tar")
         if not os.path.exists(state_file):
@@ -19,16 +21,24 @@ def process_jobs(args):
         with open(state_file) as f:
             if f.read() != "waiting":
                 continue
+        with open(machine_file) as f:
+            machine = f.read()
+            if machine != args.machine:
+                continue
         tooldir = pathlib.Path(__file__).parent.absolute()
         with open(state_file, "w+") as f:
             f.write("started")
         print("Processing {}".format(job_id))
-        subprocess.call(["{}/baremetal_run.py".format(tooldir),
+        cwd = os.path.dirname(args.config)
+        runner_config = os.path.join(cwd, config["machines"][args.machine]["config"])
+        subprocess.call(["{}/../runner/baremetal_run.py".format(tooldir),
                          "-o",
                          results_file,
                          "--audio",
                          "--video",
                          "--lzop",
+                         "--config",
+                         runner_config,
                          image_file])
         with open(state_file, "w+") as f:
             f.write("ready")
@@ -39,7 +49,12 @@ def process_jobs(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Process jobs from queue directory")
     parser.add_argument("--queue-dir", metavar="DIR", required=True, help="Directory for queue")
+    parser.add_argument("--config", required=True, help="Server configuration")
+    parser.add_argument("--machine", required=True, help="Process only requests for a specific machine")
     args = parser.parse_args()
+
+    with open(args.config) as f:
+        config = json.load(f)
 
     while True:
         num_jobs = process_jobs(args)
