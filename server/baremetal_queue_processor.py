@@ -34,7 +34,6 @@ def process_jobs(args):
         subprocess.call(["{}/../runner/baremetal_run.py".format(tooldir),
                          "-o",
                          results_file,
-                         "--audio",
                          "--video",
                          "--lzop",
                          "--config",
