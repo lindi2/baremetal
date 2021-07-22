@@ -46,7 +46,7 @@ for i in 4 5; do
     # serial
     case "${i}" in
 	4)
-	    sudo ln -sf "serial/by-path/pci-0000:00:1a.0-usb-0:1.2:1.0-port0" /dev/serial_vlan${i}
+	    sudo ln -sf "serial/by-path/pci-0000:00:14.0-usb-0:2:1.0-port0" /dev/serial_vlan${i}
 	    ;;
 	5)
 	    sudo ln -sf "serial/by-path/pci-0000:00:14.0-usb-0:2:1.0-port0" /dev/serial_vlan${i}
