@@ -43,9 +43,9 @@ auto vlan5
 iface vlan5 inet manual
  vlan-raw-device enp3s0
 EOF
-sudo ifup vlan2
-sudo ifup vlan1
-sudo ifup vlan3
+sudo ifup vlan2 || true
+sudo ifup vlan1 || true
+sudo ifup vlan3 || true
 
 
 for i in 4 5; do
