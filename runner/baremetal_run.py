@@ -98,7 +98,11 @@ def set_power(state):
 def press_power_button():
     logger.info("press_power_button")
     subprocess.check_call(config["power_button_command"], shell=True)
-    
+
+def start_with_netboot():
+    logger.info("start_with_netboot")
+    subprocess.check_call(config["netboot_start_command"], shell=True)
+
 def set_image(filename, lzop_compressed):
     logger.info("set_image {}".format(filename))
     if os.path.exists(config["image_filename"]):
@@ -166,8 +170,8 @@ if __name__ == "__main__":
         set_netboot(True)
         inject_log_event("log Turning power relay on")
         set_power(True)
-        inject_log_event("log Pressing power button")
-        press_power_button()
+        inject_log_event("log Starting the system for netboot")
+        start_with_netboot()
         while t.netboot_exit_status() == None:
             time.sleep(1)
         assert t.netboot_exit_status() == 0
