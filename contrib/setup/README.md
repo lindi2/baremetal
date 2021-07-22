@@ -16,6 +16,6 @@ baremetal/server/baremetal_queue_server.py --listen-address 10.0.5.102 --api-key
 You should be able to test this with:
 
 ```
-
-
+time baremetal/client/baremetal_queue_client.py -u http://10.0.5.102:3000 -o tpm1_bios.tar --machine thinkpad_r400 --api-key .baremetal_apikeys tboot-test-image-bios.img.lzo
+time baremetal/client/baremetal_queue_client.py -u http://10.0.5.102:3000 -o tpm2_uefi.tar --machine elitedesk_800 --api-key .baremetal_apikeys tboot-test-image-uefi.img.lzo
 ```
