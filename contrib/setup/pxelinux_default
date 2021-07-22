@@ -6,7 +6,7 @@ SAY WARNING WARNING WARNING
 TOTALTIMEOUT 20
 
 LABEL baremetal
-LINUX http://10.44.12.1/baremetal/vmlinuz-4.19.0-9-amd64
-APPEND initrd=http://10.44.12.1/baremetal/initrd.img-4.19.0-9-amd64.baremetal plymouth.enable=0 net.ifnames=0
+LINUX http://10.44.12.1/baremetal/vmlinuz
+APPEND initrd=http://10.44.12.1/baremetal/initrd.img plymouth.enable=0 net.ifnames=0
 
 

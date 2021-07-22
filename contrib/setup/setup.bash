@@ -30,11 +30,11 @@ for i in 4 5; do
 
     # HTTP
     sudo mkdir -p /srv/baremetal/vlan${i}/http/baremetal
-    sudo cp /boot/vmlinuz-4.19.0-9-amd64 /srv/baremetal/vlan${i}/http/baremetal
+    sudo cp /boot/vmlinuz-$(uname -r) /srv/baremetal/vlan${i}/http/baremetal/vmlinuz
     sudo cp baremetal.sh /srv/baremetal/vlan${i}/http/baremetal
     # Allow normal user to add a disk image here
     sudo chown "$USER" /srv/baremetal/vlan${i}/http/baremetal
-    sudo /usr/sbin/mkinitramfs -d initramfs-tools.baremetal -o /srv/baremetal/vlan${i}/http/baremetal/initrd.img-4.19.0-9-amd64.baremetal 4.19.0-9-amd64
+    sudo /usr/sbin/mkinitramfs -d initramfs-tools.baremetal -o /srv/baremetal/vlan${i}/http/baremetal/initrd.img $(uname -r)
     sudo systemd-run --unit vlan${i}_http ip netns exec ns_vlan${i} python3 -m http.server --directory /srv/baremetal/vlan${i}/http 80
 
     # log
