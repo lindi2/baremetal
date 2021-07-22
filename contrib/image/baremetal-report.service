@@ -1,0 +1,10 @@
+[Unit]
+Description=Report successful boot to baremetal test monitor
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/baremetal-report
+
+[Install]
+WantedBy=multi-user.target
+

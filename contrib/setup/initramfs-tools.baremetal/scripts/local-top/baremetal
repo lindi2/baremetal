@@ -1,0 +1,20 @@
+#!/bin/sh
+case "$1" in
+    prereqs)
+	echo ""
+	exit 0
+	;;
+esac
+
+ip link set eth0 up
+ip addr add 10.44.12.2/24 dev eth0
+wget -O baremetal.sh http://10.44.12.1/baremetal/baremetal.sh
+chmod a+x baremetal.sh
+./baremetal.sh
+echo "baremetal.sh exited with $?"
+/bin/sh
+
+
+
+
+
