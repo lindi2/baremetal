@@ -40,7 +40,7 @@ The software will make Arduino listen on port 80 at 10.44.13.2. The
 following two HTTP APIs are supported:
 
 | Endpoint                                     | Description                                         |
-| --------------------------------------------- ---------------------------------------------------- |
+| ---------------------------------------------|---------------------------------------------------- |
 | POST /press?relay=A&duration=B               | Activate relay A for B seconds and then release it. |
 | POST /transmit?code=000101010001010101010111 | Send the code 000101010001010101010111 over 433 MHz |
 
