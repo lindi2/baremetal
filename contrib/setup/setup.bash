@@ -2,7 +2,8 @@
 set -x
 set -e
 
-sudo apt install isc-dhcp-server tftpd-hpa syslinux-common pxelinux ffmpeg tcpdump pulseaudio-utils python3-pip ser2net socat vlan uuid-runtime python3-flask curl
+sudo apt install isc-dhcp-server tftpd-hpa syslinux-common pxelinux ffmpeg tcpdump pulseaudio-utils python3-pip ser2net socat vlan uuid-runtime python3-flask curl lzop syslinux-efi etherwake
+sudo systemctl disable --now tftpd-hpa
 sudo systemctl disable --now ser2net
 #pip3 install --user librosa
 
