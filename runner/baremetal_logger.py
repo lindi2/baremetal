@@ -46,9 +46,9 @@ class TCPAcceptor(threading.Thread):
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Log JSON events from network to file")
-    parser.add_argument("--listen-address", default="10.44.12.1", metavar="ADDR", help="Listen for connections on ADDR")
+    parser.add_argument("--listen-address", default="localhost", metavar="ADDR", help="Listen for connections on ADDR")
     parser.add_argument("--listen-port", default=2500, type=int, metavar="PORT", help="Listen for connections on TCP port PORT")
-    parser.add_argument("logfile", metavar="FILE", help="Write logs to FILE")
+    parser.add_argument("--output", required=True, help="Output filename")
     args = parser.parse_args()
 
     event_queue = queue.Queue()
@@ -57,7 +57,7 @@ if __name__ == "__main__":
                 args.listen_port,
                 event_queue).start()
 
-    with open(args.logfile, "a+") as log:
+    with open(args.output, "a+") as log:
         while True:
             msg = event_queue.get()
             assert msg[0] == "data"
