@@ -1,5 +1,6 @@
 {
     "power_button_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/press?relay=1&duration=1'",
+    "netboot_start_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/press?relay=1&duration=1'",
     "power_on_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/transmit?code=000101010001010101010111'",
     "power_off_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/transmit?code=000101010001010101010100'",
     "link_status_command": "../switch/zyxel_gs1200-8_get_link_status.py --port 4 --password-file ../switch/zyxel.password http://192.168.1.3",
