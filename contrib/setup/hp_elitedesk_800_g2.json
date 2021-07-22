@@ -12,5 +12,5 @@
     "netboot_symlink_target": "lpxelinux.0.real",
     "log_port": 2505,
     "serial_port": 2105,
-    "control_port": 9005,
+    "control_port": 9005
 }
