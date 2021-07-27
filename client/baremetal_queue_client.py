@@ -8,6 +8,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Submit image for testing with baremetal_queue_server.py")
     parser.add_argument("-u", "--url", metavar="URL", required="True", help="Service URL")
     parser.add_argument("-o", "--output", metavar="TARFILE", required=True, help="Write output to FILE")
+    parser.add_argument("-i", "--input", metavar="TARFILE", help="Provide input files for the execution. ./main will be executed and can write output files to output/")
     parser.add_argument("--chunk-size", default=10, help="Chunk size in MB")
     parser.add_argument("--machine", required=True, help="Machine to use")
     parser.add_argument("--api-key", metavar="FILE", required=True, help="File with API key")
@@ -39,10 +40,24 @@ if __name__ == "__main__":
             data = imagefile.read(args.chunk_size*1024*1024)
             if data == b"":
                 break
-            url = "{}/{}/upload-chunk".format(args.url, job_id)
+            url = "{}/{}/upload-chunk/image".format(args.url, job_id)
             r = requests.post(url, headers=headers, data=data)
             assert r.status_code == 200
             chunk += 1
+
+    if args.input:
+        print("Uploading input in {}MB chunks".format(args.chunk_size))
+        chunk = 0
+        with open(args.input, "rb") as inputfile:
+            while True:
+                print("chunk {}".format(chunk))
+                data = inputfile.read(args.chunk_size*1024*1024)
+                if data == b"":
+                    break
+                url = "{}/{}/upload-chunk/input".format(args.url, job_id)
+                r = requests.post(url, headers=headers, data=data)
+                assert r.status_code == 200
+                chunk += 1
 
     print("Starting job")
     url = "{}/{}/start".format(args.url, job_id)

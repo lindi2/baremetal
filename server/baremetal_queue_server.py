@@ -55,13 +55,19 @@ def create_app(args):
         print("Created job {}".format(job_id))
         return jsonify({"job_id": job_id})
 
-    @app.route("/<job_id>/upload-chunk", methods=["POST"])
-    def job_upload_chunk(job_id=None):
+    @app.route("/<job_id>/upload-chunk/<filetype>", methods=["POST"])
+    def job_upload_chunk(job_id=None, filetype=None):
         check_api_key()
         check_job_id(job_id)
         assert get_state(job_id) == "created"
         job_dir = os.path.join(args.queue_dir, job_id)
-        image_file = os.path.join(job_dir, "image.lzo")
+        if filetype == "image":
+            filename = "image.lzo"
+        elif filetype == "input":
+            filename = "input.tar"
+        else:
+            abort(400, "Unrecognized file type")
+        image_file = os.path.join(job_dir, filename)
         with open(image_file, "ab+") as f:
             f.write(request.get_data())
         return jsonify({"status": get_state(job_id)})
@@ -97,9 +103,12 @@ def create_app(args):
         assert get_state(job_id) == "ready"
         job_dir = os.path.join(args.queue_dir, job_id)
         image_file = os.path.join(job_dir, "image.lzo")
+        input_file = os.path.join(job_dir, "input.tar")
         results_file = os.path.join(job_dir, "results.tar")
         state_file = os.path.join(job_dir, "state")
         machine_file = os.path.join(job_dir, "machine")
+        if os.path.exists(input_file):
+            os.unlink(input_file)
         os.unlink(image_file)
         os.unlink(results_file)
         os.unlink(state_file)

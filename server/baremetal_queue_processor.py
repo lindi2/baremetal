@@ -13,6 +13,7 @@ def process_jobs(args):
         state_file = os.path.join(job_dir, "state")
         machine_file = os.path.join(job_dir, "machine")
         image_file = os.path.join(job_dir, "image.lzo")
+        input_file = os.path.join(job_dir, "input.tar")
         results_file = os.path.join(job_dir, "results.tar")
         if not os.path.exists(state_file):
             continue
@@ -31,14 +32,20 @@ def process_jobs(args):
         print("Processing {}".format(job_id))
         cwd = os.path.dirname(args.config)
         runner_config = os.path.join(cwd, config["machines"][args.machine]["config"])
-        subprocess.call(["{}/../runner/baremetal_run.py".format(tooldir),
-                         "-o",
-                         results_file,
-                         "--video",
-                         "--lzop",
-                         "--config",
-                         runner_config,
-                         image_file])
+        cmd = ["{}/../runner/baremetal_run.py".format(tooldir),
+               "-o",
+               results_file,
+               "--video",
+               "--lzop",
+               "--config",
+               runner_config,
+            image_file]
+        if os.path.exists(input_file):
+            cmd += [
+                "--input",
+                input_file
+            ]
+        subprocess.call(cmd)
         with open(state_file, "w+") as f:
             f.write("ready")
         processed += 1
