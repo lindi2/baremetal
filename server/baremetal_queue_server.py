@@ -121,6 +121,11 @@ def create_app(args):
         check_api_key()
         return jsonify(config["machines"])
 
+    @app.route("/templates")
+    def templates_list():
+        check_api_key()
+        return jsonify(config["templates"])
+
     return app
 
 if __name__ == "__main__":
