@@ -7,7 +7,7 @@ import time
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Submit image for testing with baremetal_queue_server.py")
     parser.add_argument("-u", "--url", metavar="URL", required="True", help="Service URL")
-    parser.add_argument("-o", "--output", metavar="TARFILE", required=True, help="Write output to FILE")
+    parser.add_argument("-o", "--output", metavar="TARFILE", help="Write output to FILE")
     parser.add_argument("-i", "--input", metavar="TARFILE", help="Provide input files for the execution. ./main will be executed and can write output files to output/")
     parser.add_argument("--chunk-size", default=10, help="Chunk size in MB")
     parser.add_argument("--machine", help="Machine to use")
@@ -52,6 +52,10 @@ if __name__ == "__main__":
 
     if not args.image and not args.template:
         print("You need to specify either --image or --template")
+        sys.exit(1)
+
+    if not args.output:
+        print("You need to specify --output")
         sys.exit(1)
 
 
