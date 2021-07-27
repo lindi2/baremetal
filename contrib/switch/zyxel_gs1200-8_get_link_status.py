@@ -25,8 +25,18 @@ headers = {
     "Referer": args.url + "/"
 }
 
-r = s.post(url, data=data)
-assert r.status_code == 200
+retries = 0
+while True:
+    try:
+        r = s.post(url, data=data)
+        assert r.status_code == 200
+        break
+    except requests.exceptions.ConnectionError:
+        if retries < 3:
+            time.sleep(3)
+            retries += 1
+        else:
+            assert False
 
 url = args.url + "/link_data.js"
 headers = {
