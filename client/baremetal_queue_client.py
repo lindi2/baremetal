@@ -10,7 +10,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", metavar="TARFILE", required=True, help="Write output to FILE")
     parser.add_argument("-i", "--input", metavar="TARFILE", help="Provide input files for the execution. ./main will be executed and can write output files to output/")
     parser.add_argument("--chunk-size", default=10, help="Chunk size in MB")
-    parser.add_argument("--machine", required=True, help="Machine to use")
+    parser.add_argument("--machine", help="Machine to use")
     parser.add_argument("--api-key", metavar="FILE", required=True, help="File with API key")
     parser.add_argument("image", metavar="FILE", help="Disk image to run")
     args = parser.parse_args()
@@ -18,10 +18,23 @@ if __name__ == "__main__":
     with open(args.api_key) as f:
         apikey = f.read().strip()
 
-    print("Creating new job")
+
     headers = {
         "X-API-KEY": apikey
     }
+    if not args.machine:
+        print("No --machine was specified. Querying server for a list of supported machines:")
+        url = "{}/machines".format(args.url)
+        r = requests.get(url, headers=headers)
+        assert r.status_code == 200
+        for machine in r.json().keys():
+            print(f"{machine}:")
+            for capability in r.json()[machine]["capabilities"].keys():
+                capability_value = r.json()[machine]["capabilities"][capability]
+                print(f" - {capability}: {capability_value}")
+        sys.exit(1)
+
+    print("Creating new job")
     data = {
         "machine": args.machine
     }

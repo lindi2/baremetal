@@ -116,6 +116,11 @@ def create_app(args):
         os.rmdir(job_dir)
         return jsonify({"status": "OK"})
 
+    @app.route("/machines")
+    def machines_list():
+        check_api_key()
+        return jsonify(config["machines"])
+
     return app
 
 if __name__ == "__main__":
