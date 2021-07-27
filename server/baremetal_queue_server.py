@@ -9,6 +9,7 @@ import uuid
 import re
 import os
 import json
+import shutil
 
 def create_app(args):
     app = Flask(__name__)
@@ -70,6 +71,22 @@ def create_app(args):
         image_file = os.path.join(job_dir, filename)
         with open(image_file, "ab+") as f:
             f.write(request.get_data())
+        return jsonify({"status": get_state(job_id)})
+
+    @app.route("/<job_id>/deploy-template", methods=["POST"])
+    def deploy_template(job_id=None):
+        check_api_key()
+        check_job_id(job_id)
+        assert get_state(job_id) == "created"
+        if request.json is None:
+            abort(400, "JSON body is required")
+        if "template" not in request.json:
+            abort(400, "Required parameter template was not specified")
+        if request.json["template"] not in config["templates"]:
+            abort(400, "Requested template does not exist")
+        job_dir = os.path.join(args.queue_dir, job_id)
+        image_file = os.path.join(job_dir, "image.lzo")
+        shutil.copyfile(config["templates"][request.json["template"]]["image"], image_file)
         return jsonify({"status": get_state(job_id)})
     
     @app.route("/<job_id>/start", methods=["POST"])

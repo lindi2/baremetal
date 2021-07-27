@@ -14,7 +14,8 @@ if __name__ == "__main__":
     parser.add_argument("--list-templates", action="store_true", help="List available templates")
     parser.add_argument("--list-machines", action="store_true", help="List available machines")
     parser.add_argument("--api-key", metavar="FILE", required=True, help="File with API key")
-    parser.add_argument("image", metavar="FILE", help="Disk image to run")
+    parser.add_argument("--template", metavar="TEMPLATE", help="Use template TEMPLATE instead of uploading an image")
+    parser.add_argument("--image", metavar="FILE", help="Disk image to run")
     args = parser.parse_args()
 
     with open(args.api_key) as f:
@@ -49,29 +50,46 @@ if __name__ == "__main__":
         print("No --machine was specified. Please use --list-machines to select one")
         sys.exit(1)
 
+    if not args.image and not args.template:
+        print("You need to specify either --image or --template")
+        sys.exit(1)
+
+
     print("Creating new job")
     data = {
         "machine": args.machine
     }
     r = requests.post(args.url, headers=headers, json=data)
     if r.status_code != 200:
-        print("Server replide with status code {code} and error: {error}".format(code=r.status_code, error=r.text))
+        print("Server replied with status code {code} and error: {error}".format(code=r.status_code, error=r.text))
         sys.exit(1)
     job_id = r.json()["job_id"]
     print("Job {} was created".format(job_id))
 
-    print("Uploading image in {}MB chunks".format(args.chunk_size))
-    chunk = 0
-    with open(args.image, "rb") as imagefile:
-        while True:
-            print("chunk {}".format(chunk))
-            data = imagefile.read(args.chunk_size*1024*1024)
-            if data == b"":
-                break
-            url = "{}/{}/upload-chunk/image".format(args.url, job_id)
-            r = requests.post(url, headers=headers, data=data)
-            assert r.status_code == 200
-            chunk += 1
+    if args.image:
+        print("Uploading image in {}MB chunks".format(args.chunk_size))
+        chunk = 0
+        with open(args.image, "rb") as imagefile:
+            while True:
+                print("chunk {}".format(chunk))
+                data = imagefile.read(args.chunk_size*1024*1024)
+                if data == b"":
+                    break
+                url = "{}/{}/upload-chunk/image".format(args.url, job_id)
+                r = requests.post(url, headers=headers, data=data)
+                assert r.status_code == 200
+                chunk += 1
+
+    if args.template:
+        print(f"Deploying template {args.template}")
+        data = {
+            "template": args.template
+        }
+        url = "{}/{}/deploy-template".format(args.url, job_id)
+        r = requests.post(url, headers=headers, json=data)
+        if r.status_code != 200:
+            print("Server replied with status code {code} and error: {error}".format(code=r.status_code, error=r.text))
+            sys.exit(1)
 
     if args.input:
         print("Uploading input in {}MB chunks".format(args.chunk_size))
