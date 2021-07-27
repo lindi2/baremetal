@@ -22,7 +22,7 @@ class Trace:
         self.tcpdump = None
     def __enter__(self):
         tooldir = pathlib.Path(__file__).parent.absolute()
-        self.processes.append(subprocess.Popen(["{}/baremetal_logger.py".format(tooldir), "--listen-port", str(config["log_port"]), "--output", "{}/log.json".format(self.tmpdir)]))
+        self.processes.append(subprocess.Popen(["{}/baremetal_logger.py".format(tooldir), "--listen-port", str(config["log_port"]), "--output-tar-gz", "{}/output.tar.gz".format(self.tmpdir), "--output", "{}/log.json".format(self.tmpdir)]))
         self.processes.append(subprocess.Popen(["{}/serial_logger.py".format(tooldir), "--port", str(config["serial_port"]), "--output", "{}/serial.log".format(self.tmpdir)]))
         return self
     def start_network_capture(self):
@@ -112,6 +112,10 @@ def set_image(filename, lzop_compressed):
     else:
         shutil.copyfile(filename, config["image_filename"])
 
+def set_input(filename):
+    logger.info("set_input {}".format(filename))
+    shutil.copyfile(filename, config["input_filename"])
+
 def inject_log_event(buf):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", config["log_port"]))
@@ -148,6 +152,7 @@ def sha256(filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Run image on real hardware and return output")
     parser.add_argument("-o", "--output", metavar="TARFILE", required=True, help="Write output to FILE")
+    parser.add_argument("-i", "--input", metavar="TARFILE", required=True, help="Read input from FILE")
     parser.add_argument("--timeout", metavar="SECONDS", default=120, type=int, help="Kill target after SECONDS seconds")
     parser.add_argument("--reboot", action="store_true", help="Use warm reboot instead of cold boot")
     parser.add_argument("--leave-running", action="store_true", help="Leave the target running after the test")
@@ -166,6 +171,8 @@ if __name__ == "__main__":
         inject_log_event("log Preparing to boot {} (sha256 {})".format(args.image, sha256(args.image)))
         inject_log_event("log Enabling serial logging")
         set_image(args.image, args.lzop)
+        if args.input:
+            set_input(args.input)
         inject_log_event("log Enabling network boot service")
         set_netboot(True)
         inject_log_event("log Turning power relay on")

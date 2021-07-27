@@ -7,6 +7,7 @@
     "iface": "vlan5",
     "netns": "ns_vlan5",
     "image_filename": "/srv/baremetal/vlan5/http/baremetal/baremetal.img.lzo",
+    "input_filename": "/srv/baremetal/vlan5/http/baremetal/input.tar",
     "video_device": "/dev/v4l/by-path/pci-0000:00:14.0-usb-0:1.4:1.0-video-index0",
     "video_resolution": "1920x1080",
     "netboot_symlink": "/srv/baremetal/vlan5/tftp/pxe.0",

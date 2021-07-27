@@ -7,6 +7,7 @@ import time
 import socket
 import json
 import binascii
+import base64
 
 class BaremetalLogger(socketserver.BaseRequestHandler):
     def __init__(self, event_queue, *args):
@@ -49,6 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--listen-address", default="localhost", metavar="ADDR", help="Listen for connections on ADDR")
     parser.add_argument("--listen-port", default=2500, type=int, metavar="PORT", help="Listen for connections on TCP port PORT")
     parser.add_argument("--output", required=True, help="Output filename")
+    parser.add_argument("--output-tar-gz", required=True, help="Output tar.gz filename")
     args = parser.parse_args()
 
     event_queue = queue.Queue()
@@ -73,14 +75,19 @@ if __name__ == "__main__":
                 elif text.startswith("exit "):
                     event["type"] = "exit"
                     event["status"] = int(text[len("exit "):])
+                elif text.startswith("output "):
+                    with open(args.output_tar_gz, "wb+") as f:
+                        f.write(base64.b64decode(text[len("output "):].encode("utf-8")))
+                    continue
                 elif text.startswith("netboot_exit "):
                     event["type"] = "netboot_exit"
                     event["status"] = int(text[len("netboot_exit "):])
                 else:
                     raise Exception("unhandled message")
-            except:
+            except Exception as e:
                 event["type"] = "parse-error"
                 event["data"] = binascii.hexlify(data).decode("utf-8")
+                event["exception"] = str(e)
 
             log.write(json.dumps(event) + "\n")
             log.flush()
