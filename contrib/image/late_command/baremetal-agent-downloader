@@ -1,17 +1,10 @@
 #!/bin/bash
 
-cd /root
-
-while ! ping -W 1 -c 1 10.44.12.1; do
-    sleep 1
-done
-
-if [ ! -e input.tar ]; then
-    echo "log baremetal-report: Downloading input.tar" | nc 10.44.12.1 2500
-    wget -U baremetal -O input.tar http://10.44.12.1/baremetal/input.tar
-    echo "log baremetal-report: Unpacking input.tar" | nc 10.44.12.1 2500
-    tar xf input.tar
-    chmod a+x main
-    mkdir output
+if [ ! -e /usr/local/bin/baremetal-agent ]; then
+    while ! ping -W 1 -c 1 10.44.12.1; do
+	sleep 1
+    done
+    wget -U baremetal -O /usr/local/bin/baremetal-agent http://10.44.12.1/baremetal/baremetal-agent
+    chmod a+x /usr/local/bin/baremetal-agent
 fi
-./main
+/usr/local/bin/baremetal-agent
