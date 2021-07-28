@@ -16,14 +16,15 @@ if [ ! -e /usr/local/bin/baremetal ]; then
 	exit
     fi
     chmod a+x /usr/local/bin/baremetal
+    hash -r
 fi
 
 if [ ! -e /root/input.tar ]; then
-    echo "log baremetal-agent: downloading /root/input.tar" | nc 10.44.12.1 2500
+    baremetal log "baremetal-agent: downloading /root/input.tar"
     wget -U baremetal -O /root/input.tar http://10.44.12.1/baremetal/input.tar
     rc="$?"
     if [ "$rc" != "0" ]; then
-	echo "log baremetal-agent: download failed with $rc" | nc 10.44.12.1 2500
+	baremetal log "baremetal-agent: download failed with $rc"
 	echo "exit 2" | nc 10.44.12.1 2500
 	exit
     fi
@@ -33,5 +34,14 @@ fi
 
 cd /root
 
-echo "# Executing ./main on $(date)" >> output/output.txt
-./main >> output/output.txt 2>&1
+if [ -e main ]; then
+    baremetal log "baremetal-agent: executing ./main"
+    echo "# Executing ./main on $(date)" >> output/output.txt
+    chmod a+x main
+    ./main >> output/output.txt 2>&1
+    baremetal upload-output
+else
+    baremetal log "baremetal-agent: could not find ./main in input.tar"
+    echo "exit 1" | nc 10.44.12.1 2500
+    exit
+fi
