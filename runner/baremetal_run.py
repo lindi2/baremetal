@@ -231,7 +231,6 @@ if __name__ == "__main__":
                 break
             keepalive = t.latest_keepalive()
             if keepalive and keepalive > latest_keepalive:
-                print("Updating keepalive")
                 latest_keepalive = keepalive
             if args.timeout and time.time() - latest_keepalive > args.timeout:
                 inject_log_event("log Target timed out after {} seconds".format(args.timeout))
