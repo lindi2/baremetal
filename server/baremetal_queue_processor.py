@@ -37,6 +37,10 @@ def process_jobs(args):
                results_file,
                "--video",
                "--lzop",
+               "--timeout",
+               "120",
+               "--hard-timeout",
+               "600",
                "--config",
                runner_config,
             image_file]
