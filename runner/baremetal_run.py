@@ -51,6 +51,13 @@ class Trace:
                 if event["type"] == "exit":
                     return event["status"]
         return None
+    def latest_keepalive(self):
+        with open("{}/log.json".format(self.tmpdir)) as log:
+            for line in log.readlines():
+                event = json.loads(line)
+                if event["type"] == "keepalive":
+                    return event["time"]
+        return None
     def stop(self):
         for proc in self.processes:
             proc.terminate()
@@ -160,7 +167,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Run image on real hardware and return output")
     parser.add_argument("-o", "--output", metavar="TARFILE", required=True, help="Write output to FILE")
     parser.add_argument("-i", "--input", metavar="TARFILE", required=True, help="Read input from FILE")
-    parser.add_argument("--timeout", metavar="SECONDS", default=120, type=int, help="Kill target after SECONDS seconds")
+    parser.add_argument("--timeout", metavar="SECONDS", default=120, type=int, help="Kill target after SECONDS seconds after most recent keepalive")
+    parser.add_argument("--hard-timeout", metavar="SECONDS", default=600, type=int, help="Kill target after SECONDS seconds")
     parser.add_argument("--reboot", action="store_true", help="Use warm reboot instead of cold boot")
     parser.add_argument("--leave-running", action="store_true", help="Leave the target running after the test")
     parser.add_argument("--audio", action="store_true", help="Record audio")
@@ -216,8 +224,16 @@ if __name__ == "__main__":
             inject_log_event("log Pressing power button")
             press_power_button()
         start = time.time()
+        latest_keepalive = time.time()
         while t.exit_status() == None:
-            if args.timeout and time.time() - start > args.timeout:
+            if args.hard_timeout and time.time() - start > args.hard_timeout:
+                inject_log_event("log Target timed out after {} seconds (hard timeout)".format(args.hard_timeout))
+                break
+            keepalive = t.latest_keepalive()
+            if keepalive and keepalive > latest_keepalive:
+                print("Updating keepalive")
+                latest_keepalive = keepalive
+            if args.timeout and time.time() - latest_keepalive > args.timeout:
                 inject_log_event("log Target timed out after {} seconds".format(args.timeout))
                 break
             time.sleep(1)

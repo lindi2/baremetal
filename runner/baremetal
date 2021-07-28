@@ -12,6 +12,10 @@ cmd_exit() {
     echo "exit $1" | nc 10.44.12.1 2500
 }
 
+cmd_keepalive() {
+    echo "keepalive" | nc 10.44.12.1 2500
+}
+
 case "$1" in
     "exit")
 	cmd_upload_output
@@ -22,5 +26,8 @@ case "$1" in
 	;;
     "log")
 	cmd_log "$2"
+	;;
+    "keepalive")
+	cmd_keepalive
 	;;
 esac

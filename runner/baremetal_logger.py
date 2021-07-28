@@ -82,6 +82,8 @@ if __name__ == "__main__":
                 elif text.startswith("netboot_exit "):
                     event["type"] = "netboot_exit"
                     event["status"] = int(text[len("netboot_exit "):])
+                elif text.startswith("keepalive"):
+                    event["type"] = "keepalive"
                 else:
                     raise Exception("unhandled message")
             except Exception as e:
