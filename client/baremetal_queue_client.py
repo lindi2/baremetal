@@ -31,7 +31,8 @@ if __name__ == "__main__":
         r = requests.get(url, headers=headers)
         assert r.status_code == 200
         for machine in r.json().keys():
-            print(f"{machine}:")
+            name = r.json()[machine]["name"]
+            print(f"{machine}: {name}")
             for capability in r.json()[machine]["capabilities"].keys():
                 capability_value = r.json()[machine]["capabilities"][capability]
                 print(f" - {capability}: {capability_value}")
