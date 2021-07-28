@@ -100,4 +100,17 @@ for i in 4 5; do
 	    ;;
     esac
     sudo systemd-run -p Restart=on-failure --unit vlan${i}_serial ser2net -n -C "210${i}:raw:600:/dev/serial_vlan${i}:115200 8DATABITS NONE 1STOPBIT"
+
+    # network
+    sudo ip link add veth${i} type veth peer name veth${i}_host
+    sudo ip addr add 10.45.${i}.1/24 dev veth${i}_host
+    sudo ip link set veth${i} netns ns_vlan${i}
+    sudo ip netns exec ns_vlan${i} ip addr add 10.45.${i}.2/24 dev veth${i}
+    sudo ip netns exec ns_vlan${i} ip link set veth${i} up
+    sudo ip netns exec ns_vlan${i} ip route add default via 10.45.${i}.1
+    sudo ip link set veth${i}_host down
+    sudo ip netns exec ns_vlan${i} iptables -t nat -A POSTROUTING -o veth${i} -j MASQUERADE
+    sudo sysctl net.ipv4.ip_forward=1
+    sudo ip netns exec ns_vlan${i} sysctl net.ipv4.ip_forward=1
+    sudo iptables -t nat -A POSTROUTING -s 10.45.${i}.0/24 -o vlan2 -j MASQUERADE
 done

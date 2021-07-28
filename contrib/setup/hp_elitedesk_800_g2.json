@@ -6,6 +6,7 @@
     "link_status_command": "../switch/zyxel_gs1200-8_get_link_status.py --port 5 --password-file ../switch/zyxel.password http://192.168.1.3",
     "iface": "vlan5",
     "netns": "ns_vlan5",
+    "upstream_iface": "veth5_host",
     "image_filename": "/srv/baremetal/vlan5/http/baremetal/baremetal.img.lzo",
     "input_filename": "/srv/baremetal/vlan5/http/baremetal/input.tar",
     "http_directory": "/srv/baremetal/vlan5/http/baremetal",

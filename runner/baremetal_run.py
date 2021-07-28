@@ -152,6 +152,9 @@ def set_netboot(state):
         if os.path.exists(config["netboot_symlink"]):
             os.unlink(config["netboot_symlink"])
 
+def set_upstream_connection(state):
+    subprocess.check_call(["sudo", "ip", "link", "set", config["upstream_iface"], state])
+
 def sha256(filename):
     with open(filename, "rb") as f:
         h = hashlib.sha256()
@@ -166,12 +169,13 @@ def sha256(filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Run image on real hardware and return output")
     parser.add_argument("-o", "--output", metavar="TARFILE", required=True, help="Write output to FILE")
-    parser.add_argument("-i", "--input", metavar="TARFILE", required=True, help="Read input from FILE")
-    parser.add_argument("--timeout", metavar="SECONDS", default=120, type=int, help="Kill target after SECONDS seconds after most recent keepalive")
-    parser.add_argument("--hard-timeout", metavar="SECONDS", default=600, type=int, help="Kill target after SECONDS seconds")
+    parser.add_argument("-i", "--input", metavar="TARFILE", help="Read input from FILE")
+    parser.add_argument("--timeout", metavar="SECONDS", type=int, help="Kill target after SECONDS seconds after most recent keepalive")
+    parser.add_argument("--hard-timeout", metavar="SECONDS", type=int, help="Kill target after SECONDS seconds")
     parser.add_argument("--reboot", action="store_true", help="Use warm reboot instead of cold boot")
     parser.add_argument("--leave-running", action="store_true", help="Leave the target running after the test")
     parser.add_argument("--audio", action="store_true", help="Record audio")
+    parser.add_argument("--allow-network", action="store_true", help="Allow access to Internet during test")
     parser.add_argument("--lzop", action="store_true", help="Image is already lzop compressed")
     parser.add_argument("--video", action="store_true", help="Record video")
     parser.add_argument("--config", required=True, help="Configuration file")
@@ -185,6 +189,11 @@ if __name__ == "__main__":
     with Trace() as t:
         inject_log_event("log Preparing to boot {} (sha256 {})".format(args.image, sha256(args.image)))
         inject_log_event("log Enabling serial logging")
+        if args.allow_network:
+            inject_log_event("log Allowing access to Internet during this run")
+            set_upstream_connection("up")
+        else:
+            set_upstream_connection("down")
         set_image(args.image, args.lzop)
         set_agent()
         if args.input:
