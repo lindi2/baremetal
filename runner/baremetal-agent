@@ -1,0 +1,37 @@
+#!/bin/bash
+
+while ! ping -W 1 -c 1 10.44.12.1; do
+    sleep 1
+done
+
+echo "log baremetal-agent: starting up" | nc 10.44.12.1 2500
+
+if [ ! -e /usr/local/bin/baremetal ]; then
+    echo "log baremetal-agent: downloading /usr/local/bin/baremetal" | nc 10.44.12.1 2500
+    wget -U baremetal -O /usr/local/bin/baremetal http://10.44.12.1/baremetal/baremetal
+    rc="$?"
+    if [ "$rc" != "0" ]; then
+	echo "log baremetal-agent: download failed with $rc" | nc 10.44.12.1 2500
+	echo "exit 1" | nc 10.44.12.1 2500
+	exit
+    fi
+    chmod a+x /usr/local/bin/baremetal
+fi
+
+if [ ! -e /root/input.tar ]; then
+    echo "log baremetal-agent: downloading /root/input.tar" | nc 10.44.12.1 2500
+    wget -U baremetal -O /root/input.tar http://10.44.12.1/baremetal/input.tar
+    rc="$?"
+    if [ "$rc" != "0" ]; then
+	echo "log baremetal-agent: download failed with $rc" | nc 10.44.12.1 2500
+	echo "exit 2" | nc 10.44.12.1 2500
+	exit
+    fi
+    tar -C /root -xf /root/input.tar
+    mkdir /root/output
+fi
+
+cd /root
+
+echo "# Executing ./main on $(date)" >> output/output.txt
+./main >> output/output.txt 2>&1

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+cmd_log() {
+    echo "log $1" | nc 10.44.12.1 2500
+}
+
+cmd_upload_output() {
+    (echo -n "output "; tar -C /root/output -cf - . | gzip -9 | base64 | tr -d '\n') | nc 10.44.12.1 2500
+}
+
+cmd_exit() {
+    echo "exit $1" | nc 10.44.12.1 2500
+}
+
+case "$1" in
+    "exit")
+	cmd_upload_output
+	cmd_exit "$2"
+	;;
+    "upload-output")
+	cmd_upload_output
+	;;
+    "log")
+	cmd_log "$2"
+	;;
+esac
