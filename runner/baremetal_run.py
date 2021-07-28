@@ -103,6 +103,13 @@ def start_with_netboot():
     logger.info("start_with_netboot")
     subprocess.check_call(config["netboot_start_command"], shell=True)
 
+def set_agent():
+    tooldir = pathlib.Path(__file__).parent.absolute()
+    for cmd in ["baremetal-agent", "baremetal"]:
+        src = os.path.join(tooldir, cmd)
+        dst = os.path.join(config["http_directory"], cmd)
+        shutil.copyfile(src, dst)
+
 def set_image(filename, lzop_compressed):
     logger.info("set_image {}".format(filename))
     if os.path.exists(config["image_filename"]):
@@ -171,6 +178,7 @@ if __name__ == "__main__":
         inject_log_event("log Preparing to boot {} (sha256 {})".format(args.image, sha256(args.image)))
         inject_log_event("log Enabling serial logging")
         set_image(args.image, args.lzop)
+        set_agent()
         if args.input:
             set_input(args.input)
         inject_log_event("log Enabling network boot service")
