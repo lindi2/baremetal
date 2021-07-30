@@ -28,7 +28,7 @@ if [ ! -e /root/input.tar ]; then
 	echo "exit 2" | nc 10.44.12.1 2500
 	exit
     fi
-    tar -C /root -xf /root/input.tar
+    tar --no-same-owner --no-same-permissions -C /root -xf /root/input.tar
     mkdir /root/output
 fi
 
