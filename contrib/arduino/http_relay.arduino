@@ -18,8 +18,10 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <RCSwitch.h>
+#include <ps2dev.h>
 
 RCSwitch mySwitch = RCSwitch();
+PS2dev keyboard(3, 2); //clock, data
 
 // Enter a MAC address and IP address for your controller below.
 // The IP address will be dependent on your local network:
@@ -60,10 +62,15 @@ void setup() {
   
   // Optional set number of transmission repetitions.
   // mySwitch.setRepeatTransmit(15);
+
+  keyboard.keyboard_init();
 }
 
 
 void loop() {
+  unsigned char leds;
+  keyboard.keyboard_handle(&leds);
+
   // listen for incoming clients
   EthernetClient client = server.available();
   if (client) {
@@ -96,6 +103,15 @@ void loop() {
             // 01234567890123456789012345678901234567890123
             line[44] = '\0';
             mySwitch.send((char*)(line + 20));
+        }
+        if (c == '\n' && line_idx >= 26 && strncmp((char*)line, "POST /ps2?code=ctrlaltdel", 25) == 0) {
+            // POST /ps2?code=ctrlaltdel
+            // 0123456789012345678901234
+            keyboard.keyboard_press(PS2dev::LEFT_CONTROL);
+            keyboard.keyboard_press(PS2dev::LEFT_ALT);
+            keyboard.keyboard_special_mkbrk(PS2dev::DELETE);
+            keyboard.keyboard_release(PS2dev::LEFT_ALT);
+            keyboard.keyboard_release(PS2dev::LEFT_CONTROL);
         }
         if (c == '\n') {
           line_idx = 0;

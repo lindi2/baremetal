@@ -10,7 +10,7 @@ The following pieces of hardware were used in this setup:
 - Arduino Uno R3
 - Arduino ethernet shield (WS1500, pins 10, 11, 12, 13)
 - Arduino 4-channel relay shield (pins 4, 5, 6, 7)
-- Arduino protoshield with a 433 MHz transmitter (pin 9)
+- Arduino protoshield with a 433 MHz transmitter (pin 9) and PS/2 interface (pins 2, 3)
 - Remote control power sockets that can be controlled over 433 MHz transmissions
 
 Connect all of your test devices to the power sockets and then wire
@@ -43,5 +43,6 @@ following two HTTP APIs are supported:
 | ---------------------------------------------|---------------------------------------------------- |
 | POST /press?relay=A&duration=B               | Activate relay A for B seconds and then release it. |
 | POST /transmit?code=000101010001010101010111 | Send the code 000101010001010101010111 over 433 MHz |
+| POST /ps2?code=ctrlaltdel                    | Send ctrl+alt+del over the fake PS/2 keyboard       |
 
 
