@@ -114,7 +114,8 @@ def press_power_button():
 
 def start_with_netboot():
     logger.info("start_with_netboot")
-    subprocess.check_call(config["netboot_start_command"], shell=True)
+    cwd = os.path.dirname(args.config)
+    subprocess.check_call(config["netboot_start_command"], shell=True, cwd=cwd)
 
 def set_agent():
     tooldir = pathlib.Path(__file__).parent.absolute()
