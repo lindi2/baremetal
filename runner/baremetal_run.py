@@ -81,7 +81,13 @@ def get_net_carrier():
     tooldir = pathlib.Path(__file__).parent.absolute()
     cmd = config["link_status_command"]
     cwd = os.path.dirname(args.config)
-    return "Up" in subprocess.check_output(cmd, shell=True, cwd=cwd).decode("utf-8")
+    rc = subprocess.call(cmd, shell=True, cwd=cwd)
+    if rc == 0:
+        return True
+    elif rc == 1:
+        return False
+    else:
+        assert False
 
 def set_power(state):
     logger.info("set_power {}".format(state))

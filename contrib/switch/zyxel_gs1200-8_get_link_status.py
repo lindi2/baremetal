@@ -3,6 +3,7 @@ import requests
 import time
 import json
 import argparse
+import sys
 
 parser = argparse.ArgumentParser("Get link status of a port on a Zyxel GS1200-8 switch")
 parser.add_argument("--port", type=int, required=True, help="Port number (1-8)")
@@ -60,6 +61,10 @@ assert r.status_code == 200
 prefix = "var portstatus = "
 portstatus_line = list(filter(lambda x: x.startswith(prefix), text.split("\n")))[0]
 x = json.loads(portstatus_line[len(prefix):-1].replace("'", '"'))
-print(x[args.port - 1])
+status = x[args.port - 1]
 
+if "Up" in status:
+    sys.exit(0)
+else:
+    sys.exit(1)
 
