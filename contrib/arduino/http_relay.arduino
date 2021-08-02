@@ -102,14 +102,57 @@ void loop() {
             line[44] = '\0';
             mySwitch.send((char*)(line + 20));
         }
-        if (c == '\n' && line_idx >= 26 && strncmp((char*)line, "POST /ps2?code=ctrlaltdel", 25) == 0) {
-            // POST /ps2?code=ctrlaltdel
-            // 0123456789012345678901234
-            keyboard.keyboard_press(PS2dev::LEFT_CONTROL);
-            keyboard.keyboard_press(PS2dev::LEFT_ALT);
-            keyboard.keyboard_special_mkbrk(PS2dev::DELETE);
-            keyboard.keyboard_release(PS2dev::LEFT_ALT);
-            keyboard.keyboard_release(PS2dev::LEFT_CONTROL);
+        if (c == '\n' && line_idx >= 14 && strncmp((char*)line, "POST /ps2?init", 16) == 0) {
+            // POST /ps2?init=1
+            // 0123456788901234
+            Serial.println("ps2 init");
+            unsigned long timecount = millis();
+            while ((millis() - timecount) < 100) {
+                if (keyboard.write(0xAA) == 0) {
+                    break;
+                }
+            }
+            delay(10);
+        }
+        if (c == '\n' && line_idx >= 14 && strncmp((char*)line, "POST /ps2?code=", 15) == 0) {
+            // POST /ps2?code=
+            // 012345678901234
+            Serial.println("ps2 send");
+            char *p = (char*)(line + 15);
+            while (1) {
+                byte code = 0;
+                if (*p >= '0' && *p <= '9') {
+                    code |= *p - '0';
+                } else if (*p >= 'A' && *p <= 'F') {
+                    code |= 10 + *p - 'A';
+                } else {
+                    break;
+                }
+                p++;
+                code *= 16;
+                if (*p >= '0' && *p <= '9') {
+                    code += *p - '0';
+                } else if (*p >= 'A' && *p <= 'F') {
+                    code += 10 + *p - 'A';
+                } else {
+                    break;
+                }
+                p++;
+                if (*p == 'p') {
+                    Serial.println("press");
+                    keyboard.keyboard_press(code);
+                } else if (*p == 'r') {
+                    Serial.println("release");
+                    keyboard.keyboard_release(code);
+                } else if (*p == 'm') {
+                    Serial.println("make");
+                    keyboard.keyboard_mkbrk(code);
+                } else if (*p == 'M') {
+                    Serial.println("makespecial");
+                    keyboard.keyboard_special_mkbrk(code);
+                }
+                p++;
+            }
         }
         if (c == '\n') {
           line_idx = 0;
