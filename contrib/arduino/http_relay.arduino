@@ -62,8 +62,6 @@ void setup() {
   
   // Optional set number of transmission repetitions.
   // mySwitch.setRepeatTransmit(15);
-
-  keyboard.keyboard_init();
 }
 
 
