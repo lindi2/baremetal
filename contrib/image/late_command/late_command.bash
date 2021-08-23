@@ -21,9 +21,9 @@ sed -i "s@GRUB_CMDLINE_LINUX_DEFAULT=.*@GRUB_CMDLINE_LINUX_DEFAULT=\"quiet net.i
 update-grub2
 
 echo "Install reporting service"
-cp baremetal-report baremetal /usr/local/bin/
-cp baremetal-report.service /etc/systemd/system/
-systemctl enable baremetal-report.service
+cp baremetal-agent-downloader /usr/local/bin/
+cp baremetal-agent-downloader.service /etc/systemd/system/
+systemctl enable baremetal-agent-downloader.service
 
 echo "Minimize image size"
 apt-get -y install apt-show-versions

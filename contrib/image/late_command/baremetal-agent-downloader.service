@@ -1,9 +1,9 @@
 [Unit]
-Description=Report successful boot to baremetal test monitor
+Description=Download baremetal-agent from test monitor and execute it
 
 [Service]
 Type=forking
-ExecStart=/usr/local/bin/baremetal-report
+ExecStart=/usr/local/bin/baremetal-agent-downloader
 
 [Install]
 WantedBy=multi-user.target
