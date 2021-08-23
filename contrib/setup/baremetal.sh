@@ -12,6 +12,15 @@ sync
 echo 3 > /proc/sys/vm/drop_caches
 sync
 sync
+modprobe efivarfs
+mount -t efivarfs none /sys/firmware/efi/efivars
+if [ -e /sys/firmware/efi/efivars ]; then
+    for i in $(efibootmgr | grep -i "^boot....\*.*ipv6"|cut --bytes=5-8); do
+	echo "log baremetal initrd: disabling IPv6 network boot option $i" | nc 10.44.12.1 2500
+	efibootmgr --inactive --bootnum "$i"
+    done
+    umount /sys/firmware/efi/efivars
+fi
 echo "baremetal initrd: Signaling exit and waiting for commands"
 echo netboot_exit $rc | nc 10.44.12.1 2500
 nc -l -p 9000 | /bin/sh
