@@ -16,13 +16,6 @@ fi
 apt-get remove -y debconf-utils
 apt-get clean
 
-if grep -q "variant=unstable" /proc/cmdline; then
-    echo "Upgrade to Debian unstable"
-    echo "deb http://deb.debian.org/debian/ sid main" > /etc/apt/sources.list
-    apt-get update
-    apt-get -y dist-upgrade
-fi
-
 echo "Reconfigure grub2"
 sed -i "s@GRUB_CMDLINE_LINUX_DEFAULT=.*@GRUB_CMDLINE_LINUX_DEFAULT=\"quiet net.ifnames=0\"@" /etc/default/grub
 update-grub2
