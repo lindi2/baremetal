@@ -71,6 +71,10 @@ class Trace:
             self.tcpdump = None
         self.processes = []
     def save(self, filename):
+        output_tar_gz = os.path.join(self.tmpdir, "output.tar.gz")
+        if os.path.exists(output_tar_gz):
+            subprocess.check_call(["tar", "-C", self.tmpdir, "-x", "--no-same-owner", "--no-same-permissions", "--no-acls", "--no-selinux", "--no-xattrs", "--one-top-level", "-z", "-f", output_tar_gz])
+            os.unlink(output_tar_gz)
         subprocess.check_call(["tar", "-C", self.tmpdir, "-c", "-f", args.output, "."])
     def __exit__(self, type, value, traceback):
         self.stop()
