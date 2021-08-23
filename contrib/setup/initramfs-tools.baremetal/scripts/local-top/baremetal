@@ -6,7 +6,10 @@ case "$1" in
 	;;
 esac
 
-ip link set eth0 up
+if ! ip link set eth0 up; then
+    echo "baremetal initrd: bringing eth0 up failed, rebooting" | microcom -t 1000 -s 115200 /dev/ttyS0
+    echo b > /proc/sysrq-trigger
+fi
 ip addr add 10.44.12.2/24 dev eth0
 wget -O baremetal.sh http://10.44.12.1/baremetal/baremetal.sh
 chmod a+x baremetal.sh
