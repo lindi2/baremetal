@@ -1,18 +1,11 @@
-implement repository of standard images
-- debian-10-bios
-- debian-10-uefi
-- debian-unstable-2020
+fix bios delay on elitebook
+replace ssd with hdd on elitebook
 add mechanism for updating this repository somehow
-ability to specify standard image instead of uploading an image every time
 ability to cache an image at least for some time for repeated tests
-ability to specify commands to run in the target environment
-ability to include input files and receive output files
 ability to run commands to run when the image has been written but not yet booted
 - for testing e.g. modifications to initramfs or maybe efibootmgr?
 ability to get at least log output incrementally during the test execution
 ability to stop the job forcibly from client
-ability to at least install packages from debian mirrors
-- maybe with a http proxy?
 ability to specify different capabilities for different apikeys
 - for example apikey with longer maximum timeout or no network restrictions
 ability to see length of the job queue when waiting
@@ -22,10 +15,7 @@ ability to specify job details over the http api
 - reboot type
 - what information to capture
 - network restrictions?
-hdmi capture card
-hard timeout and soft timeout that can be pinged with http commands
-add support for multiple machines and some ability to select which one to use
 add one virtual machine example
 boot target machine to image writing mode already in advance
-support selecting target to use with http api
 support specifying more baremetal_run parameters from http api
+ensure that unstable image contains only one kernel
