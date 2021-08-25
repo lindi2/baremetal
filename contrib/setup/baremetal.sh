@@ -15,7 +15,7 @@ sync
 modprobe efivarfs
 mount -t efivarfs none /sys/firmware/efi/efivars
 if [ -e /sys/firmware/efi/efivars ]; then
-    for i in $(efibootmgr | grep -i "^boot....\*.*ipv6"|cut --bytes=5-8); do
+    for i in $(efibootmgr | grep -i "^boot....\*.*ipv6"|cut -b 5-8); do
 	echo "log baremetal initrd: disabling IPv6 network boot option $i" | nc 10.44.12.1 2500
 	efibootmgr --inactive --bootnum "$i"
     done
