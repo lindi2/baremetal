@@ -29,7 +29,7 @@ for variant in buster bullseye unstable; do
             --graphics "none" \
             --transient \
             $bootargs \
-            --extra-args "auto=true hostname=debian domain= console=ttyS0,115200n8 serial net.ifnames=0"
+            --extra-args "auto=true hostname=debian domain= console=ttyS0,115200n8 serial net.ifnames=0 variant=$variant"
         virt-sparsify $name.img $name.sparse.img
         lzop < $name.sparse.img > $name.img.lzo
         rm -f $name.sparse.img
