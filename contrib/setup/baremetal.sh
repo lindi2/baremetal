@@ -14,11 +14,14 @@ sync
 sync
 modprobe efivarfs
 mount -t efivarfs none /sys/firmware/efi/efivars
+echo "log baremetal initrd: efibootmgr: $(efibootmgr -v)" | nc 10.44.12.1 2500
+efibootmgr -v | microcom -t 1000 -s 115200 /dev/ttyS0
 if [ -e /sys/firmware/efi/efivars ]; then
     for i in $(efibootmgr | grep -i "^boot....\*.*ipv6"|cut -b 5-8); do
 	echo "log baremetal initrd: disabling IPv6 network boot option $i" | nc 10.44.12.1 2500
 	efibootmgr --inactive --bootnum "$i"
     done
+    efibootmgr -v | microcom -t 1000 -s 115200 /dev/ttyS0
     umount /sys/firmware/efi/efivars
 fi
 echo "baremetal initrd: Signaling exit and waiting for commands"
