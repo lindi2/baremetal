@@ -2,7 +2,7 @@
 Description=Download baremetal-agent from test monitor and execute it
 
 [Service]
-Type=forking
+Type=simple
 ExecStart=/usr/local/bin/baremetal-agent-downloader
 
 [Install]
