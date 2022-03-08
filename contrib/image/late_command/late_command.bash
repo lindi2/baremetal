@@ -24,7 +24,7 @@ if grep -q "variant=unstable" /proc/cmdline; then
 fi
 
 echo "Reconfigure grub2"
-sed -i "s@GRUB_CMDLINE_LINUX_DEFAULT=.*@GRUB_CMDLINE_LINUX_DEFAULT=\"quiet net.ifnames=0\"@" /etc/default/grub
+sed -i "s@GRUB_CMDLINE_LINUX_DEFAULT=.*@GRUB_CMDLINE_LINUX_DEFAULT=\"quiet net.ifnames=0 console=ttyS0,115200 console=tty0\"@" /etc/default/grub
 update-grub2
 
 echo "Install reporting service"
