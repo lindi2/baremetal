@@ -200,6 +200,9 @@ if __name__ == "__main__":
     set_power(False)
     with Trace() as t:
         inject_log_event("log Preparing to boot {} (sha256 {})".format(args.image, sha256(args.image)))
+        if args.video:
+            inject_log_event("log Enabling video recording")
+            t.start_video_capture()
         inject_log_event("log Enabling serial logging")
         if args.allow_network:
             inject_log_event("log Allowing access to Internet during this run")
@@ -235,9 +238,6 @@ if __name__ == "__main__":
             set_power(True)
         inject_log_event("log Enabling network packet capture")
         t.start_network_capture()
-        if args.video:
-            inject_log_event("log Enabling video recording")
-            t.start_video_capture()
         if args.audio:
             inject_log_event("log Enabling audio recording")
             t.start_audio_capture()
