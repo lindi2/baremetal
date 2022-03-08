@@ -25,10 +25,6 @@ iface vlan1 inet static
  address 192.168.1.1
  netmask 255.255.255.0
 
-auto vlan2
-iface vlan2 inet dhcp
- vlan-raw-device enp3s0
-
 auto vlan3
 iface vlan3 inet static
  vlan-raw-device enp3s0
@@ -43,7 +39,6 @@ auto vlan5
 iface vlan5 inet manual
  vlan-raw-device enp3s0
 EOF
-sudo ifup vlan2 || true
 sudo ifup vlan1 || true
 sudo ifup vlan3 || true
 
@@ -112,5 +107,5 @@ for i in 4 5; do
     sudo ip netns exec ns_vlan${i} iptables -t nat -A POSTROUTING -o veth${i} -j MASQUERADE
     sudo sysctl net.ipv4.ip_forward=1
     sudo ip netns exec ns_vlan${i} sysctl net.ipv4.ip_forward=1
-    sudo iptables -t nat -A POSTROUTING -s 10.45.${i}.0/24 -o vlan2 -j MASQUERADE
+    sudo iptables -t nat -A POSTROUTING -s 10.45.${i}.0/24 -o wlp2s0 -j MASQUERADE
 done
