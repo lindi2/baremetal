@@ -52,12 +52,13 @@ class Trace:
                     return event["status"]
         return None
     def latest_keepalive(self):
+        keepalive = None
         with open("{}/log.json".format(self.tmpdir)) as log:
             for line in log.readlines():
                 event = json.loads(line)
                 if event["type"] == "keepalive":
-                    return event["time"]
-        return None
+                    keepalive = event["time"]
+        return keepalive
     def stop(self):
         for proc in self.processes:
             proc.terminate()
