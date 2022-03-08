@@ -8,6 +8,7 @@ import socket
 import json
 import binascii
 import base64
+import os
 
 class BaremetalLogger(socketserver.BaseRequestHandler):
     def __init__(self, event_queue, *args):
@@ -76,8 +77,10 @@ if __name__ == "__main__":
                     event["type"] = "exit"
                     event["status"] = int(text[len("exit "):])
                 elif text.startswith("output "):
-                    with open(args.output_tar_gz, "wb+") as f:
+                    output_tmp = args.output_tar_gz + ".tmp"
+                    with open(output_tmp, "wb+") as f:
                         f.write(base64.b64decode(text[len("output "):].encode("utf-8")))
+                    os.rename(output_tmp, args.output_tar_gz)
                     continue
                 elif text.startswith("netboot_exit "):
                     event["type"] = "netboot_exit"
