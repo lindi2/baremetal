@@ -21,11 +21,17 @@ if [ -e /sys/firmware/efi/efivars ]; then
 	echo "log baremetal initrd: disabling IPv6 network boot option $i" | nc 10.44.12.1 2500
 	efibootmgr --inactive --bootnum "$i"
     done
+    for i in $(efibootmgr | grep "baremetal"|cut -b 5-8); do
+	echo "log baremetal initrd: removing earlier baremetal network boot option $i" | nc 10.44.12.1 2500
+	efibootmgr --delete-bootnum --bootnum "$i"
+    done
+    efibootmgr -c -d /dev/sda -p 1 -L baremetal -l "\EFI\debian\shimx64.efi"
     efibootmgr -v | microcom -t 1000 -s 115200 /dev/ttyS0
     umount /sys/firmware/efi/efivars
 fi
 echo "baremetal initrd: Signaling exit and waiting for commands"
 echo netboot_exit $rc | nc 10.44.12.1 2500
-nc -l -p 9000 | /bin/sh
-
+while true; do
+    busybox nc -l -p 9000 -e /bin/sh
+done
 
