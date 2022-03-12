@@ -40,9 +40,9 @@ def process_jobs(args):
                "--lzop",
                "--allow-network",
                "--timeout",
-               "120",
+               "300",
                "--hard-timeout",
-               "600",
+               "1500",
                "--config",
                runner_config,
             image_file]
