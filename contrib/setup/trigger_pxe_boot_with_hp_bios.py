@@ -34,7 +34,11 @@ class VideoOCR:
             self.image,
             "stdout"
         ]
-        text = subprocess.check_output(cmd, encoding="utf-8", stderr=subprocess.DEVNULL)
+        try:
+            text = subprocess.check_output(cmd, encoding="utf-8", stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            print("tesseract failed...")
+            return ""
         print("####")
         print(text)
         return text
