@@ -4,7 +4,7 @@ retries=0
 while ! ping -W 1 -c 1 10.44.12.1; do
     sleep 1
     ((retries++))
-    if [ "retries" = "10" ]; then
+    if [ "$retries" = "10" ]; then
 	echo "baremetal-agent: could not get working network in 10 seconds, rebooting" > /dev/ttyS0
 	echo "baremetal-agent: could not get working network in 10 seconds, rebooting" > /dev/tty0
 	sleep 1
