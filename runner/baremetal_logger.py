@@ -87,6 +87,9 @@ if __name__ == "__main__":
                     event["status"] = int(text[len("netboot_exit "):])
                 elif text.startswith("keepalive"):
                     event["type"] = "keepalive"
+                elif text.startswith("schedule_poweron"):
+                    event["type"] = "schedule_poweron"
+                    event["delay"] = int(text[len("schedule_poweron "):])
                 else:
                     raise Exception("unhandled message")
             except Exception as e:
