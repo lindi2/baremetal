@@ -36,7 +36,7 @@ class Trace:
         os.unlink("{}/audio.wav".format(self.tmpdir))
     def start_video_capture(self):
         tooldir = pathlib.Path(__file__).parent.absolute()
-        self.processes.append(subprocess.Popen(["ffmpeg", "-f", "video4linux2", "-s", config["video_resolution"], "-i", config["video_device"], "-c:v", "vp8", "{}/video.webm".format(self.tmpdir)], stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        self.processes.append(subprocess.Popen(["ffmpeg", "-f", "video4linux2", "-s", config["video_resolution"], "-i", config["video_device"], "-c:v", "vp8", "{}/video.webm".format(self.tmpdir)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
     def netboot_exit_status(self):
         with open("{}/log.json".format(self.tmpdir)) as log:
             for line in log.readlines():
