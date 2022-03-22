@@ -59,6 +59,14 @@ class Trace:
                 if event["type"] == "keepalive":
                     keepalive = event["time"]
         return keepalive
+    def latest_scheduled_poweron(self):
+        poweron = None
+        with open("{}/log.json".format(self.tmpdir)) as log:
+            for line in log.readlines():
+                event = json.loads(line)
+                if event["type"] == "schedule_poweron":
+                    poweron = event["time"] + event["delay"]
+        return poweron
     def stop(self):
         for proc in self.processes:
             proc.terminate()
@@ -246,6 +254,7 @@ if __name__ == "__main__":
             press_power_button()
         start = time.time()
         latest_keepalive = time.time()
+        latest_poweron = time.time()
         while t.exit_status() == None:
             if args.hard_timeout and time.time() - start > args.hard_timeout:
                 inject_log_event("log Target timed out after {} seconds (hard timeout)".format(args.hard_timeout))
@@ -253,6 +262,11 @@ if __name__ == "__main__":
             keepalive = t.latest_keepalive()
             if keepalive and keepalive > latest_keepalive:
                 latest_keepalive = keepalive
+            poweron = t.latest_scheduled_poweron()
+            if poweron and poweron > latest_poweron and poweron < time.time():
+                inject_log_event("log Pressing power button as scheduled")
+                press_power_button()
+                latest_poweron = poweron
             if args.timeout and time.time() - latest_keepalive > args.timeout:
                 inject_log_event("log Target timed out after {} seconds".format(args.timeout))
                 break
