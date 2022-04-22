@@ -44,9 +44,12 @@ cd /root
 
 if [ -e main ]; then
     baremetal log "baremetal-agent: executing ./main"
-    echo "# Executing ./main on $(date)" >> output/output.txt
+    systemctl stop getty@tty1
+    sleep 5
     chmod a+x main
-    ./main >> output/output.txt 2>&1
+    echo "# Executing ./main on $(date)" >> output/output.txt
+    systemd-run --wait --unit baremetal-main -p TTYPath=/dev/tty1 -p StandardInput=tty-force -p StandardOutput=inherit -p StandardError=inherit -p WorkingDirectory=/root script -a -f -c ./main output/output.txt
+    #./main >> output/output.txt 2>&1
     baremetal upload-output
 else
     baremetal log "baremetal-agent: could not find ./main in input.tar"
