@@ -51,13 +51,16 @@ for i in 4 5; do
     sudo ip netns add ns_vlan${i}
     sudo ip link set vlan${i} netns ns_vlan${i}
     sudo ip netns exec ns_vlan${i} ip addr add 10.44.12.1/24 dev vlan${i}
+    sudo ip netns exec ns_vlan${i} ip addr add fdbe:a67b:215b::1/64 dev vlan${i}
     sudo ip netns exec ns_vlan${i} ip link set vlan${i} up
     sudo ip netns exec ns_vlan${i} ip link set lo up
 
     # DHCP
     sudo mkdir -p /srv/baremetal/vlan${i}/dhcp
     sudo touch /srv/baremetal/vlan${i}/dhcp/leases
+    sudo touch /srv/baremetal/vlan${i}/dhcp/leases6
     sudo systemd-run -p Restart=on-failure --unit vlan${i}_dhcp ip netns exec ns_vlan${i} /usr/sbin/dhcpd -4 -f -cf $(pwd)/dhcpd.conf -lf /srv/baremetal/vlan${i}/dhcp/leases -pf /srv/baremetal/vlan${i}/dhcp/pid vlan${i}
+    sudo systemd-run -p Restart=on-failure --unit vlan${i}_dhcp6 ip netns exec ns_vlan${i} /usr/sbin/dhcpd -6 -f -cf $(pwd)/dhcpd6.conf -lf /srv/baremetal/vlan${i}/dhcp/leases6 -pf /srv/baremetal/vlan${i}/dhcp/pid6 vlan${i}
 
     # TFTP
     sudo mkdir -p /srv/baremetal/vlan${i}/tftp/pxelinux.cfg
