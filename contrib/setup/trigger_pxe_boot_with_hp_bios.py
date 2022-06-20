@@ -134,8 +134,6 @@ def main():
             text = ocr.text()
             print("Waiting for PXE to start")
             if "Start PXE" in text:
-                # Ensure we are booting with IPv4 and not IPv6
-                assert "4" in text
                 print("PXE boot seems to have started")
                 break
             check_timeout()
