@@ -1,18 +1,62 @@
 #!/usr/bin/python3
+# gunicorn3 --bind  127.0.0.1:3000 --pythonpath baremetal/server -k flask_sockets.worker 'baremetal_queue_server:app(api_keys=".baremetal_apikeys", queue_dir="queue", config="baremetal/contrib/setup/server.config")'
 from flask import Flask
 from flask import request
 from flask import jsonify
 from flask import Response
 from flask import abort
+from flask_sockets import Sockets
 import argparse
 import uuid
 import re
 import os
 import json
 import shutil
+import threading
+import queue
+import socket
 
-def create_app(args):
+class UnixSocketReader(threading.Thread):
+    def __init__(self, event_queue, socket):
+        threading.Thread.__init__(self)
+        self.event_queue = event_queue
+        self.socket = socket
+
+    def run(self):
+        while True:
+            try:
+                data = self.socket.recv(4096)
+            except Exception as e:
+                print(f"UnixSocketReader got exception {e}", file=sys.stderr)
+                data = b""
+            self.event_queue.put((self.socket, data))
+            if data == b"":
+                break
+
+class WebSocketReader(threading.Thread):
+    def __init__(self, event_queue, socket):
+        threading.Thread.__init__(self)
+        self.event_queue = event_queue
+        self.socket = socket
+
+    def run(self):
+        while True:
+            try:
+                data = self.socket.receive()
+            except Exception as e:
+                print(f"WebSocketReader got exception {e}", file=sys.stderr)
+                data = b""
+            if data is None:
+                data = b""
+            elif isinstance(data, bytearray):
+                data = bytes(data)
+            self.event_queue.put((self.socket, data))
+            if data == b"":
+                break
+
+def create_app(args, config):
     app = Flask(__name__)
+    sockets = Sockets(app)
 
     with open(args.api_keys) as f:
         apikeys = [x.strip() for x in f.readlines()]
@@ -103,6 +147,43 @@ def create_app(args):
         check_job_id(job_id)
         return jsonify({"status": get_state(job_id)})
 
+    @sockets.route('/<job_id>/connect-to-ssh')
+    def connect_to_ssh(web_socket, job_id=None):
+        check_api_key()
+        check_job_id(job_id)
+        assert get_state(job_id) == "started"
+        job_dir = os.path.join(args.queue_dir, job_id)
+        ssh_socket_path = os.path.join(job_dir, "ssh.socket")
+
+        print("Opening SSH connection for {}".format(job_id))
+        unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        unix_socket.connect(ssh_socket_path)
+
+        event_queue = queue.Queue()
+        WebSocketReader(event_queue, web_socket).start()
+        UnixSocketReader(event_queue, unix_socket).start()
+
+        while True:
+            #print(f"Waiting for events")
+            source_socket, data = event_queue.get()
+            #print(f"Got {repr(data)} from {source_socket}")
+
+            if source_socket == web_socket:
+                if data == b"C":
+                    break
+                else:
+                    unix_socket.send(data[1:])
+            elif source_socket == unix_socket:
+                if data == b"":
+                    web_socket.send(b"C", binary=True)
+                    break
+                else:
+                    web_socket.send(b"D" + data, binary=True)
+
+        unix_socket.close()
+        web_socket.close()
+        print("Closed SSH connection for {}".format(job_id))
+
     @app.route("/<job_id>/results")
     def job_results(job_id=None):
         check_api_key()
@@ -145,7 +226,7 @@ def create_app(args):
 
     return app
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser("Receive jobs from HTTP clients and store them in queue directory")
     parser.add_argument("--listen-address", default="127.0.0.1", metavar="ADDRESS", help="Listen on address ADDRESS")
     parser.add_argument("--listen-port", type=int, default=3000, metavar="PORT", help="Listen on TCP port PORT")
@@ -157,7 +238,24 @@ if __name__ == "__main__":
     with open(args.config) as f:
         config = json.load(f)
 
-    app = create_app(args)
+    app = create_app(args, config)
+    return app
+
+# Gunicorn entry point generator
+def app(*args, **kwargs):
+    # Gunicorn CLI args are useless.
+    # https://stackoverflow.com/questions/8495367/
+    #
+    # Start the application in modified environment.
+    # https://stackoverflow.com/questions/18668947/
+    #
+    import sys
+    sys.argv = ['--gunicorn']
+    for k in kwargs:
+        sys.argv.append("--" + k.replace("_", "-"))
+        sys.argv.append(kwargs[k])
+    return main()
+    
+if __name__ == "__main__":
+    app = main()
     app.run(host=args.listen_address, port=args.listen_port)
-    
-    

@@ -8,6 +8,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Submit image for testing with baremetal_queue_server.py")
     parser.add_argument("-u", "--url", metavar="URL", required="True", help="Service URL")
     parser.add_argument("-o", "--output", metavar="TARFILE", help="Write output to FILE")
+    parser.add_argument("--save-websocket-url", metavar="FILE", help="Save websocket URL to FILE")
     parser.add_argument("-i", "--input", metavar="TARFILE", help="Provide input files for the execution. ./main will be executed and can write output files to output/")
     parser.add_argument("--chunk-size", default=10, help="Chunk size in MB")
     parser.add_argument("--machine", help="Machine to use")
@@ -116,15 +117,28 @@ if __name__ == "__main__":
     assert r.status_code == 200
 
     print("Waiting for job to be ready")
+    prev_status = None
     while True:
         url = "{}/{}".format(args.url, job_id)
         r = requests.get(url, headers=headers)
         assert r.status_code == 200
         status = r.json()["status"]
         print("status {}".format(status))
+        if status != prev_status and status == "started":
+            web_socket_base = args.url.replace("http://", "ws://").replace("https://", "wss://")
+            web_socket_base_url = f"{web_socket_base}/{job_id}"
+            if args.save_websocket_url:
+                with open(args.save_websocket_url, "w+") as f:
+                    f.write(web_socket_base_url)
+            print(f"""You can connect to the target using SSH as follows:
+
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o "proxycommand ./baremetal_ssh_proxy.py -a {args.api_key} {web_socket_base_url}" user@dummy
+
+""")
         if status == "ready":
             break
         time.sleep(15)
+        prev_status = status
 
     print("Downloading results")
     url = "{}/{}/results".format(args.url, job_id)
