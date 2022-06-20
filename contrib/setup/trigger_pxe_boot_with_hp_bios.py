@@ -40,7 +40,7 @@ class VideoOCR:
             print("tesseract failed...")
             return ""
         print("####")
-        print(text)
+        print(repr(text).replace("\\n", "\n"))
         return text
         
     def __exit__(self, type, value, traceback):
@@ -71,6 +71,15 @@ def press(keyname):
 def press_power_button():
     print(f"Pressing power button")
     r = requests.post(args.power_url)
+
+start_time = None
+def check_timeout():
+    if time.time() - start_time > 100:
+        print("Timing out")
+        sys.exit(1)
+    else:
+        time.sleep(1)
+
     
 def main():
     global args
@@ -83,37 +92,53 @@ def main():
     args = parser.parse_args()
 
 
+    global start_time
+    start_time = time.time()
     with VideoOCR(args.device, args.resolution) as ocr:
         press_power_button()
 
-        while "Boot Menu" not in ocr.text():
+        while "Boot Menu\n" not in ocr.text():
+            print("Waiting for Boot Menu")
             press("F9")
-            time.sleep(1)
+            check_timeout()
 
-        press("ESC")
+        while "Boot Menu\n" in ocr.text():
+            print("Trying to exit Boot Menu")
+            press("ESC")
+            check_timeout()
 
         while "Network (PXE) Boot (F12)" not in ocr.text():
-            time.sleep(1)
+            print("Waiting for PXE option")
+            check_timeout()
 
-        press("F12")
+        while "Network (PXE) Boot (F12)" in ocr.text():
+            print("Choosing PXE option")
+            press("F12")
+            check_timeout()
 
         while "Network (PXE) Boot Menu" not in ocr.text():
-            time.sleep(1)
+            print("Waiting for PXE menu")
+            check_timeout()
 
         text = ocr.text()
         if text.find("IPV4 Network") < text.find("IPV6 Network"):
+            print("Choosing IPv4")
             press("ENTER")
         else:
+            print("Hitting down arrow to choose IPv4")
             press("DOWN")
             time.sleep(0.5)
             press("ENTER")
 
         while True:
             text = ocr.text()
+            print("Waiting for PXE to start")
             if "Start PXE" in text:
                 # Ensure we are booting with IPv4 and not IPv6
                 assert "4" in text
+                print("PXE boot seems to have started")
                 break
+            check_timeout()
         
 if __name__ == "__main__":
     main()
