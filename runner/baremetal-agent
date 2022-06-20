@@ -40,6 +40,8 @@ if [ ! -e /root/input.tar ]; then
     mkdir /root/output
 fi
 
+baremetal report_ip
+
 cd /root
 
 if [ -e main ]; then

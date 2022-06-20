@@ -20,6 +20,11 @@ cmd_schedule_poweron() {
     echo "schedule_poweron $1" | nc 10.44.12.1 2500
 }
 
+cmd_report_ip() {
+    local ip="$(ip route get 10.44.12.1 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')"
+    echo "report_ip $ip" | nc 10.44.12.1 2500
+}
+
 case "$1" in
     "exit")
 	cmd_upload_output
@@ -36,5 +41,8 @@ case "$1" in
 	;;
     "schedule_poweron")
 	cmd_schedule_poweron "$2"
+	;;
+    "report_ip")
+	cmd_report_ip
 	;;
 esac

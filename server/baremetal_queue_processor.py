@@ -13,6 +13,7 @@ def process_jobs(args):
         state_file = os.path.join(job_dir, "state")
         machine_file = os.path.join(job_dir, "machine")
         image_file = os.path.join(job_dir, "image.lzo")
+        ssh_socket = os.path.join(job_dir, "ssh.socket")
         input_file = os.path.join(job_dir, "input.tar")
         results_file = os.path.join(job_dir, "results.tar")
         if not os.path.exists(state_file):
@@ -39,6 +40,8 @@ def process_jobs(args):
                "--reboot",
                "--lzop",
                "--allow-network",
+               "--ssh-socket",
+               ssh_socket,
                "--timeout",
                "300",
                "--hard-timeout",

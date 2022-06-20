@@ -27,6 +27,9 @@ class Trace:
         return self
     def start_network_capture(self):
         self.tcpdump = subprocess.Popen(["sudo", "ip", "netns", "exec", config["netns"], "tcpdump", "-i", config["iface"], "-s", "0", "-U", "-w", "{}/network.pcap".format(self.tmpdir)], stderr=subprocess.DEVNULL)
+    def start_ssh_forward(self, ssh_socket, target_host):
+        netns = config["netns"]
+        self.processes.append(subprocess.Popen(["socat", f"UNIX-LISTEN:{ssh_socket},fork", f"EXEC:'sudo ip netns exec {netns} socat - TCP-CONNECT:{target_host}:22'"]))
     def start_audio_capture(self):
         self.processes.append(subprocess.Popen(["parecord", "--file-format=wav", "--device", config["audio_device"], "{}/audio.wav".format(self.tmpdir)]))
         self.audio_start_time = time.time()
@@ -67,6 +70,14 @@ class Trace:
                 if event["type"] == "schedule_poweron":
                     poweron = event["time"] + event["delay"]
         return poweron
+    def latest_reported_ip_address(self):
+        ip = None
+        with open("{}/log.json".format(self.tmpdir)) as log:
+            for line in log.readlines():
+                event = json.loads(line)
+                if event["type"] == "report_ip":
+                    ip = event["ip"]
+        return ip
     def stop(self):
         for proc in self.processes:
             proc.terminate()
@@ -198,6 +209,7 @@ if __name__ == "__main__":
     parser.add_argument("--allow-network", action="store_true", help="Allow access to Internet during test")
     parser.add_argument("--lzop", action="store_true", help="Image is already lzop compressed")
     parser.add_argument("--video", action="store_true", help="Record video")
+    parser.add_argument("--ssh-socket", metavar="SOCKET", help="Listen on unix socket SOCKET for SSH connections")
     parser.add_argument("--config", required=True, help="Configuration file")
     parser.add_argument("image", metavar="FILE", help="Disk image to run")
     args = parser.parse_args()
@@ -255,6 +267,7 @@ if __name__ == "__main__":
         start = time.time()
         latest_keepalive = time.time()
         latest_poweron = time.time()
+        ssh_socket_started = False
         while t.exit_status() == None:
             if args.hard_timeout and time.time() - start > args.hard_timeout:
                 inject_log_event("log Target timed out after {} seconds (hard timeout)".format(args.hard_timeout))
@@ -267,6 +280,12 @@ if __name__ == "__main__":
                 inject_log_event("log Pressing power button as scheduled")
                 press_power_button()
                 latest_poweron = poweron
+            if args.ssh_socket and not ssh_socket_started:
+                latest_reported_ip = t.latest_reported_ip_address()
+                if latest_reported_ip is not None:
+                    t.start_ssh_forward(args.ssh_socket, latest_reported_ip)
+                    ssh_socket_started = True
+
             if args.timeout and time.time() - latest_keepalive > args.timeout:
                 inject_log_event("log Target timed out after {} seconds".format(args.timeout))
                 break

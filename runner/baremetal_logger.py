@@ -9,6 +9,7 @@ import json
 import binascii
 import base64
 import os
+import ipaddress
 
 class BaremetalLogger(socketserver.BaseRequestHandler):
     def __init__(self, event_queue, *args):
@@ -90,6 +91,9 @@ if __name__ == "__main__":
                 elif text.startswith("schedule_poweron"):
                     event["type"] = "schedule_poweron"
                     event["delay"] = int(text[len("schedule_poweron "):])
+                elif text.startswith("report_ip"):
+                    event["type"] = "report_ip"
+                    event["ip"] = str(ipaddress.ip_address(text[len("report_ip "):].strip()))
                 else:
                     raise Exception("unhandled message")
             except Exception as e:
