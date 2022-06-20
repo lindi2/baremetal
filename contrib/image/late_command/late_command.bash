@@ -7,6 +7,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y debconf-utils
 echo "keyboard-configuration keyboard-configuration/layoutcode string fi" | debconf-set-selections
 echo "keyboard-configuration keyboard-configuration/variant select Finnish" | debconf-set-selections
 echo "keyboard-configuration keyboard-configuration/xkb-keymap select fi" | debconf-set-selections
+echo "Make sure grub upgrades will work on real hardware"
+echo grub-pc grub-pc/install_devices string /dev/sda | debconf-set-selections
 DEBIAN_FRONTEND=noninteractive apt-get install -y console-setup console-setup-linux eject kbd keyboard-configuration usb.ids usbutils xkb-data
 apt-mark auto usb.ids console-setup-linux xkb-data kbd 
 if ! grep -q LANGUAGE /etc/default/locale; then
