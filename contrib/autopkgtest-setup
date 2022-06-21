@@ -183,7 +183,7 @@ EOF
 
     # autopkgtest uses a controlsocket and unix sockets have a length
     # limit so we cannot use the full job_id
-    hostname="baremetal_$(echo "$job_id"|cut -d'-' -f1)}"
+    hostname="baremetal_$(echo "$job_id"|cut -d'-' -f1)"
 
     echo $hostname > $STATEDIR/hostname
 
