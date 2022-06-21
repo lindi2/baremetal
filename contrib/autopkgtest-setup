@@ -1,0 +1,323 @@
+#!/bin/sh
+#
+# This script is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# This script acquires and deploys a machine via MAAS to use as an autopkgtest
+# testbed. It assumes that MaaS is already set up, machines are commissioned to
+# it, and you added your ssh key to it.
+#
+# Positional parameters: <baremetal URL> <FILE with API key>
+#
+# Options:
+# --template TEMPLATE
+# --machine  MACHINE
+# -d, --debug
+#       Enable debug output
+#
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+set -eu
+
+CAPABILITIES='isolation-machine,reboot,revert,revert-full-system'
+
+SUDO_PASSWORD='user'
+SSH_USER=user
+
+BAREMETAL__URL=''
+APIKEYFILE=''
+TEMPLATE=''
+MACHINE=''
+DEBUG=""
+STATEDIR=""
+
+debug() {
+    [ -z "$DEBUG" ] && return
+    /bin/echo -e "baremetal DBG: $@">&2
+}
+
+info() {
+    /bin/echo -e "baremetal: $@">&2
+}
+
+error() {
+    /bin/echo -e "baremetal ERROR: $@">&2
+    cleanup
+    exit 1
+}
+
+parse_args() {
+    # Parse command line argument and populate environment
+
+    SHORTOPTS="d"
+    LONGOPTS="template:,machine:,statedir:,debug"
+
+    TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
+    eval set -- "$TEMP"
+
+    while true; do
+        case "$1" in
+            --template)
+                TEMPLATE=$2
+                shift 2;;
+            --machine)
+                MACHINE=$2
+                shift 2;;
+            -d|--debug)
+                DEBUG=1
+                shift;;
+            # private options
+            --statedir)
+                STATEDIR=$2
+                shift 2;;
+            --)
+                shift;
+                break;;
+            *)
+                error "$(basename $0): Unsupported option $1"
+        esac
+    done
+
+    BAREMETAL_URL="${1:-}"
+    APIKEYFILE="${2:-}"
+    if [ -z "$BAREMETAL_URL" -o -z "$APIKEYFILE" ]; then
+        error "Usage: $0 [options..] <baremetal URL> <FILE with API key>"
+    fi
+}
+
+# create a testbed (if necessary), configure ssh, copy ssh key into it,
+# configure sudo, etc.; print a list of "key=value" parameters to stdout on
+# success
+# required: login, hostname, and one of identity or password
+# optional: port, options, capabilities
+open() {
+    STATEDIR=$(mktemp -d)
+
+    info "Created temporary directory $STATEDIR"
+
+    info "Downloading baremetal tools"
+    for i in baremetal_queue_client.py baremetal_ssh_proxy.py; do
+        curl -s -o "$STATEDIR/$i" "https://raw.githubusercontent.com/lindi2/baremetal/master/client/$i"
+        chmod a+x "$STATEDIR/$i"
+    done
+
+    if [ -z "$MACHINE" ]; then
+        info "--machine was not specified, please choose one:"
+        $STATEDIR/baremetal_queue_client.py --api-key $APIKEYFILE -u $BAREMETAL_URL --list-machines 1>&2
+        rm $STATEDIR/*.py
+        rmdir $STATEDIR
+        exit 1
+    fi
+
+    if [ -z "$TEMPLATE" ]; then
+        info "--template was not specified, please choose one:"
+        $STATEDIR/baremetal_queue_client.py --api-key $APIKEYFILE -u $BAREMETAL_URL --list-templates 1>&2
+        rm $STATEDIR/*.py
+        rmdir $STATEDIR
+        exit 1
+    fi
+
+    mkdir $STATEDIR/input
+    #FIXME: hardcoded SSH key
+    cat > $STATEDIR/input/main <<EOF
+#!/bin/bash
+set -x
+apt -y install ssh sudo curl
+echo "user ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/user
+sudo -u user -i mkdir .ssh
+sudo -u user -i sh -c "echo ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC6y661lwG38eAHHJh7hK3ZpjjRX9HNba5g48jsUNAdzKmp2i9sdcg3W/S+hOVQiqtR3EIIPn19PsUMI1tm5vy5t5gTas9hy7JwvmduAAXMf+J5Mwuo69giS3t5R1/Ebp2urJuiZIY+e78dDK+eKqkpeR7M7hFXg5ibh/H9PL2w9STC134Cn88EE39vmgggPLHnTsyBjMwhWGZ577rxO03/CC4GexwPbUiXWAV0eqsLUxmOGiPp4Re0+eecWzOOZdGc3G3wWTI049jS33X4R/Md8bGe8DWZLL+4dxUbWn9xmEVUO+6OXIErd3tdf+2wGquHzr+rpj+WuMwe9Gmd0dzn lindi@sec-282 > .ssh/authorized_keys"
+
+curl -o acm.tar.gz https://lindi.iki.fi/lindi/tboot/acm.tar.gz
+tar -xf acm.tar.gz
+cp acm/6th_7th_gen_i5_i7-SINIT_79.bin /boot
+cp acm/3rd_gen_i5_i7_SINIT_67.BIN /boot # i5-3320M
+rm -fr acm acm.tar.gz
+
+while true; do
+    baremetal keepalive
+    sleep 30
+done
+
+EOF
+    chmod a+x $STATEDIR/input/main
+    tar -C $STATEDIR/input -cf $STATEDIR/input.tar .
+    info "Starting machine"
+    $STATEDIR/baremetal_queue_client.py --api-key $APIKEYFILE -u $BAREMETAL_URL --machine $MACHINE --template $TEMPLATE -i $STATEDIR/input.tar -o $STATEDIR/output.tar --save-websocket-url $STATEDIR/ssh.url > $STATEDIR/client.log 1>&2 &
+    client_pid="$!"
+    info "Saving client pid $client_pid"
+    echo $client_pid > $STATEDIR/client_pid
+
+    retry=180
+    while [ ! -e $STATEDIR/ssh.url ]; do
+        info "waiting for $STATEDIR/ssh.url"
+        sleep 10
+        retry=$(( retry - 1 ))
+        if [ $retry -le 0 ]; then
+            error "Timed out waiting for $STATEDIR/ssh.url. Aborting."
+        fi
+    done
+
+    ssh_url="$(cat "$STATEDIR/ssh.url")"
+
+
+    job_id="$(basename "$ssh_url")"
+
+    info "Got ssh socket to job $job_id"
+
+    # autopkgtest uses a controlsocket and unix sockets have a length
+    # limit so we cannot use the full job_id
+    hostname="baremetal_$(echo "$job_id"|cut -d'-' -f1)}"
+
+    echo $hostname > $STATEDIR/hostname
+
+    cat > $STATEDIR/ssh_config <<EOF
+host $hostname
+    user user
+    UserKnownHostsFile /dev/null
+    StrictHostKeyChecking no
+    proxycommand $STATEDIR/baremetal_ssh_proxy.py -a $APIKEYFILE ${ssh_url}
+EOF
+
+    retry=180
+    while ! timeout 20s ssh -F $STATEDIR/ssh_config $hostname true; do
+        info "waiting for ssh to work"
+        sleep 8
+        retry=$(( retry - 1 ))
+        if [ $retry -le 0 ]; then
+            error "Timed out waiting for ssh to work. Aborting."
+        fi
+    done
+
+    set +e
+    kill $(cat $STATEDIR/client_pid) 2>/dev/null
+    sleep 2
+    kill -KILL $(cat $STATEDIR/client_pid) 2>/dev/null
+    rm $STATEDIR/client_pid
+    set -e
+    
+    cat<<EOF
+login=$SSH_USER
+password=user
+hostname=$hostname
+capabilities=$CAPABILITIES
+identity=$HOME/.ssh/id_rsa
+options=-F $STATEDIR/ssh_config
+extraopts=--statedir $STATEDIR
+EOF
+}
+
+cleanup() {
+    if [ -z "$STATEDIR" ]; then
+        # No need to do any cleanup
+        return 0
+    fi
+
+    if [ -e $STATEDIR/client_pid ]; then
+        set +e
+        kill $(cat $STATEDIR/client_pid) 2>/dev/null
+        sleep 2
+        kill -KILL $(cat $STATEDIR/client_pid) 2>/dev/null
+        set -e
+    fi
+
+    hostname="$(cat $STATEDIR/hostname)"
+
+    retry=180
+    while ! ssh -F $STATEDIR/ssh_config $hostname baremetal exit 0; do
+        info "waiting for baremetal exit 0 to succeed"
+        sleep 8
+        retry=$(( retry - 1 ))
+        if [ $retry -le 0 ]; then
+            info "ERROR: Timed out waiting for baremetal exit. Target might still be running."
+            exit 1
+        fi
+    done
+
+    
+    for i in ssh.url baremetal_ssh_proxy.py client.log input.tar input/main baremetal_queue_client.py ssh_config hostname; do
+        rm -f "$STATEDIR/$i"
+    done
+    rmdir "$STATEDIR/input"
+    rmdir "$STATEDIR"
+}
+
+revert() {
+    if [ -z "$STATEDIR" ]; then
+        error "Needs to be called with --statedir DIR"
+    fi
+    cleanup
+    open
+}
+
+wait_reboot() {
+    if [ -z "$STATEDIR" ]; then
+        error "Needs to be called with --statedir DIR"
+    fi
+    hostname="$(cat $STATEDIR/hostname)"
+    retry=120
+    while timeout 5s ssh -F $STATEDIR/ssh_config $hostname true; do
+        info "waiting for ssh to stop responding"
+        sleep 4
+        retry=$(( retry - 1 ))
+        if [ $retry -le 0 ]; then
+            error "Timed out waiting for ssh to stop responding."
+            exit 1
+        fi
+    done
+
+    retry=300
+    while ! timeout 5s ssh -F $STATEDIR/ssh_config $hostname true; do
+        info "waiting for ssh to start responding again"
+        sleep 4
+        retry=$(( retry - 1 ))
+        if [ $retry -le 0 ]; then
+            error "Timed out waiting for ssh to start responding again."
+            exit 1
+        fi
+    done
+    
+    exit 0
+}
+
+# ########################################
+# Main procedure
+#
+if [ $# -eq 0 ]; then
+    error "Invalid number of arguments, command is missing"
+fi
+cmd=$(echo $1|tr [[:upper:]] [[:lower:]])
+shift
+parse_args "$@"
+
+case $cmd in
+    open)
+        open;;
+    cleanup)
+        cleanup;;
+    revert)
+        revert;;
+    wait-reboot)
+        wait_reboot;;
+    '')
+        error "Needs to be called with command as first argument" >&2
+        ;;
+    *)
+        error "invalid command $cmd" >&2
+esac
