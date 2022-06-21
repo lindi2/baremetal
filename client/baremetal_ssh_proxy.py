@@ -16,8 +16,8 @@ Others:
 try:
     import websocket
 except ModuleNotFoundError as e:
-    print("Missing dependencies: {}".format(repr(e)))
-    print("Please install dependencies: {dependencies}".format(dependencies=dependencies))
+    print("Missing dependencies: {}".format(repr(e)), file=sys.stderr)
+    print("Please install dependencies: {dependencies}".format(dependencies=dependencies), file=sys.stderr)
     sys.exit(1)
 
 class WebSocketReader(threading.Thread):
