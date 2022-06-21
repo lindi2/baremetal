@@ -20,6 +20,8 @@ except ModuleNotFoundError as e:
     print("Please install dependencies: {dependencies}".format(dependencies=dependencies), file=sys.stderr)
     sys.exit(1)
 
+stop_threads = False
+
 class WebSocketReader(threading.Thread):
     def __init__(self, event_queue, socket):
         threading.Thread.__init__(self)
@@ -27,7 +29,7 @@ class WebSocketReader(threading.Thread):
         self.socket = socket
 
     def run(self):
-        while True:
+        while not stop_threads:
             try:
                 data = self.socket.recv()
             except Exception as e:
@@ -51,7 +53,7 @@ class StreamReader(threading.Thread):
 
         end_of_stream = False
         try:
-            while not end_of_stream:
+            while not stop_threads and not end_of_stream:
                 events = epoll.poll(1)
                 for fileno, event in events:
                     data = self.stream.read(4096)
@@ -89,7 +91,8 @@ if __name__ == "__main__":
 
     WebSocketReader(event_queue, web_socket).start()
     StreamReader(event_queue, sys.stdin.buffer).start()
-    
+
+    retval = 0
     while True:
         #print(f"Waiting for events")
         source_socket, data = event_queue.get()
@@ -97,6 +100,10 @@ if __name__ == "__main__":
     
         if source_socket == web_socket:
             if data == b"C":
+                break
+            elif len(data) > 0 and data.startswith(b"E"):
+                sys.stderr.write(data[1:].decode("utf-8") + "\n")
+                retval = 1
                 break
             else:
                 sys.stdout.buffer.write(data[1:])
@@ -113,5 +120,9 @@ if __name__ == "__main__":
 
     sys.stdout.buffer.close()
     web_socket.close()
+
+    stop_threads = True
+
+    sys.exit(retval)
 
 
