@@ -11,6 +11,7 @@ import uuid
 import re
 import os
 import json
+import sys
 import shutil
 import threading
 import queue
@@ -147,42 +148,55 @@ def create_app(args, config):
         check_job_id(job_id)
         return jsonify({"status": get_state(job_id)})
 
-    @sockets.route('/<job_id>/connect-to-ssh')
-    def connect_to_ssh(web_socket, job_id=None):
+    def connect_to_ssh2(web_socket, job_id):
         check_api_key()
         check_job_id(job_id)
-        assert get_state(job_id) == "started"
+        if get_state(job_id) != "started":
+            abort(400, "The job has not started yet")
+
         job_dir = os.path.join(args.queue_dir, job_id)
         ssh_socket_path = os.path.join(job_dir, "ssh.socket")
 
         print("Opening SSH connection for {}".format(job_id))
         unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        unix_socket.connect(ssh_socket_path)
+        try:
+            try:
+                unix_socket.connect(ssh_socket_path)
+            except FileNotFoundError:
+                raise Exception("Internal error, SSH socket is missing")
 
-        event_queue = queue.Queue()
-        WebSocketReader(event_queue, web_socket).start()
-        UnixSocketReader(event_queue, unix_socket).start()
+            event_queue = queue.Queue()
+            WebSocketReader(event_queue, web_socket).start()
+            UnixSocketReader(event_queue, unix_socket).start()
 
-        while True:
-            #print(f"Waiting for events")
-            source_socket, data = event_queue.get()
-            #print(f"Got {repr(data)} from {source_socket}")
+            while True:
+                #print(f"Waiting for events")
+                source_socket, data = event_queue.get()
+                #print(f"Got {repr(data)} from {source_socket}")
 
-            if source_socket == web_socket:
-                if data == b"C":
-                    break
-                else:
-                    unix_socket.send(data[1:])
-            elif source_socket == unix_socket:
-                if data == b"":
-                    web_socket.send(b"C", binary=True)
-                    break
-                else:
-                    web_socket.send(b"D" + data, binary=True)
-
-        unix_socket.close()
-        web_socket.close()
+                if source_socket == web_socket:
+                    if data == b"C":
+                        break
+                    else:
+                        unix_socket.send(data[1:])
+                elif source_socket == unix_socket:
+                    if data == b"":
+                        web_socket.send(b"C", binary=True)
+                        break
+                    else:
+                        web_socket.send(b"D" + data, binary=True)
+        finally:
+            unix_socket.close()
         print("Closed SSH connection for {}".format(job_id))
+
+    @sockets.route('/<job_id>/connect-to-ssh')
+    def connect_to_ssh(web_socket, job_id=None):
+        try:
+            connect_to_ssh2(web_socket, job_id)
+        except Exception as e:
+            web_socket.send(b"EException occured: " + str(e).encode("utf-8"))
+        finally:
+            web_socket.close()
 
     @app.route("/<job_id>/results")
     def job_results(job_id=None):
