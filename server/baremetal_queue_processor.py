@@ -49,6 +49,10 @@ def process_jobs(args):
             cmd.append("--reboot")
         if parameters.get("lzop", True):
             cmd.append("--lzop")
+        if parameters.get("capture-network", False):
+            cmd.append("--capture-network")
+        if parameters.get("capture-serial", False):
+            cmd.append("--capture-serial")
         if parameters.get("allow-network", False):
             cmd.append("--allow-network")
         cmd.extend(["--ssh-socket", ssh_socket])

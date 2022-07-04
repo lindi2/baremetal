@@ -31,6 +31,8 @@ if __name__ == "__main__":
     parser.add_argument("--cold-boot", action="store_true", help="Use cold boot instead of warm boot")
     parser.add_argument("--allow-network", action="store_true", help="Allow access to Internet during test")
     parser.add_argument("--video", action="store_true", help="Record video")
+    parser.add_argument("--capture-network", action="store_true", help="Capture network traffic")
+    parser.add_argument("--capture-serial", action="store_true", help="Capture serial traffic")
 
     args = parser.parse_args()
 
@@ -41,6 +43,8 @@ if __name__ == "__main__":
         "video": args.video,
         "reboot": not args.cold_boot,
         "lzop": True,
+        "capture-network": args.capture_network,
+        "capture-serial": args.capture_serial,
         "allow-network": args.allow_network,
         "timeout": args.timeout,
         "hard-timeout": args.hard_timeout

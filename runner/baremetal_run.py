@@ -23,8 +23,9 @@ class Trace:
     def __enter__(self):
         tooldir = pathlib.Path(__file__).parent.absolute()
         self.processes.append(subprocess.Popen(["{}/baremetal_logger.py".format(tooldir), "--listen-port", str(config["log_port"]), "--output-tar-gz", "{}/output.tar.gz".format(self.tmpdir), "--output", "{}/log.json".format(self.tmpdir)]))
-        self.processes.append(subprocess.Popen(["{}/serial_logger.py".format(tooldir), "--port", str(config["serial_port"]), "--output", "{}/serial.log".format(self.tmpdir)]))
         return self
+    def start_serial_capture(self):
+        self.processes.append(subprocess.Popen(["{}/serial_logger.py".format(tooldir), "--port", str(config["serial_port"]), "--output", "{}/serial.log".format(self.tmpdir)]))
     def start_network_capture(self):
         self.tcpdump = subprocess.Popen(["sudo", "ip", "netns", "exec", config["netns"], "tcpdump", "-i", config["iface"], "-s", "0", "-U", "-w", "{}/network.pcap".format(self.tmpdir)], stderr=subprocess.DEVNULL)
     def start_ssh_forward(self, ssh_socket, target_host):
@@ -210,6 +211,8 @@ if __name__ == "__main__":
     parser.add_argument("--reboot", action="store_true", help="Use warm reboot instead of cold boot")
     parser.add_argument("--leave-running", action="store_true", help="Leave the target running after the test")
     parser.add_argument("--audio", action="store_true", help="Record audio")
+    parser.add_argument("--capture-network", action="store_true", help="Capture network traffic")
+    parser.add_argument("--capture-serial", action="store_true", help="Capture serial traffic")
     parser.add_argument("--allow-network", action="store_true", help="Allow access to Internet during test")
     parser.add_argument("--lzop", action="store_true", help="Image is already lzop compressed")
     parser.add_argument("--video", action="store_true", help="Record video")
@@ -224,6 +227,8 @@ if __name__ == "__main__":
 
     set_power(False)
     with Trace() as t:
+        if args.capture_serial:
+            t.start_serial_capture()
         inject_log_event("log Preparing to boot {} (sha256 {})".format(args.image, sha256(args.image)))
         inject_log_event("log Enabling serial logging")
         if args.allow_network:
@@ -265,7 +270,8 @@ if __name__ == "__main__":
             inject_log_event("log Turning power relay on")
             set_power(True)
         inject_log_event("log Enabling network packet capture")
-        t.start_network_capture()
+        if args.capture_network:
+            t.start_network_capture()
         if args.video:
             inject_log_event("log Enabling video recording")
             t.start_video_capture()
