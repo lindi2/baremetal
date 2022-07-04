@@ -41,6 +41,8 @@ class Trace:
         tooldir = pathlib.Path(__file__).parent.absolute()
         self.processes.append(subprocess.Popen(["ffmpeg", "-f", "video4linux2", "-s", config["video_resolution"], "-i", config["video_device"], "-c:v", "vp8", "{}/video.webm".format(self.tmpdir)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
     def netboot_exit_status(self):
+        if args.stop_file is not None and os.path.exists(args.stop_file):
+            return -1
         with open("{}/log.json".format(self.tmpdir)) as log:
             for line in log.readlines():
                 event = json.loads(line)
@@ -48,6 +50,8 @@ class Trace:
                     return event["status"]
         return None
     def exit_status(self):
+        if args.stop_file is not None and os.path.exists(args.stop_file):
+            return -1
         with open("{}/log.json".format(self.tmpdir)) as log:
             for line in log.readlines():
                 event = json.loads(line)
@@ -210,6 +214,7 @@ if __name__ == "__main__":
     parser.add_argument("--lzop", action="store_true", help="Image is already lzop compressed")
     parser.add_argument("--video", action="store_true", help="Record video")
     parser.add_argument("--ssh-socket", metavar="SOCKET", help="Listen on unix socket SOCKET for SSH connections")
+    parser.add_argument("--stop-file", metavar="FILE", help="Stop job if FILE is created")
     parser.add_argument("--config", required=True, help="Configuration file")
     parser.add_argument("image", metavar="FILE", help="Disk image to run")
     args = parser.parse_args()
@@ -238,6 +243,12 @@ if __name__ == "__main__":
         start_with_netboot()
         while t.netboot_exit_status() == None:
             time.sleep(1)
+        if t.netboot_exit_status() == -1:
+            inject_log_event("log Received command to stop the test")
+            set_power(False)
+            t.stop()
+            t.save(args.output)
+            sys.exit(0)
         assert t.netboot_exit_status() == 0
         if not args.reboot:
             inject_log_event("log Performing shutdown")

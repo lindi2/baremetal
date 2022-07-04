@@ -3,6 +3,15 @@ import argparse
 import requests
 import sys
 import time
+import signal
+
+def sigint_handler(signum, frame):
+    print("Stopping job {}".format(job_id))
+    url = "{}/{}/stop".format(args.url, job_id)
+    r = requests.post(url, headers=headers)
+    if r.status_code != 200:
+        print("Stopping job failed with code {}: {}".format(r.status_code, r.text))
+        sys.exit(1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Submit image for testing with baremetal_queue_server.py")
@@ -110,6 +119,8 @@ if __name__ == "__main__":
                 r = requests.post(url, headers=headers, data=data)
                 assert r.status_code == 200
                 chunk += 1
+
+    signal.signal(signal.SIGINT, sigint_handler)
 
     print("Starting job")
     url = "{}/{}/start".format(args.url, job_id)

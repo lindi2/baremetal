@@ -208,6 +208,16 @@ def create_app(args, config):
         with open(results_file, "rb") as f:
             return Response(f.read(), mimetype="application/octet-stream")
 
+    @app.route("/<job_id>/stop", methods=["POST"])
+    def job_stop(job_id=None):
+        check_api_key()
+        check_job_id(job_id)
+        job_dir = os.path.join(args.queue_dir, job_id)
+        stop_file = os.path.join(job_dir, "stop")
+        with open(stop_file, "w+") as f:
+            f.write("stop\n")
+        return jsonify({"status": "OK"})
+
     @app.route("/<job_id>", methods=["DELETE"])
     def job_delete(job_id=None):
         check_api_key()
@@ -219,8 +229,11 @@ def create_app(args, config):
         results_file = os.path.join(job_dir, "results.tar")
         state_file = os.path.join(job_dir, "state")
         machine_file = os.path.join(job_dir, "machine")
+        stop_file = os.path.join(job_dir, "stop")
         if os.path.exists(input_file):
             os.unlink(input_file)
+        if os.path.exists(stop_file):
+            os.unlink(stop_file)
         os.unlink(image_file)
         os.unlink(results_file)
         os.unlink(state_file)

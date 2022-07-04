@@ -15,6 +15,7 @@ def process_jobs(args):
         image_file = os.path.join(job_dir, "image.lzo")
         ssh_socket = os.path.join(job_dir, "ssh.socket")
         input_file = os.path.join(job_dir, "input.tar")
+        stop_file = os.path.join(job_dir, "stop")
         results_file = os.path.join(job_dir, "results.tar")
         if not os.path.exists(state_file):
             continue
@@ -36,6 +37,8 @@ def process_jobs(args):
         cmd = ["{}/../runner/baremetal_run.py".format(tooldir),
                "-o",
                results_file,
+               "--stop-file",
+               stop_file,
                "--video",
                "--reboot",
                "--lzop",
