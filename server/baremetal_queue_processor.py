@@ -59,7 +59,7 @@ def process_jobs(args):
         timeout = int(parameters.get("timeout", 300))
         cmd.extend(["--timeout", str(timeout)])
         hard_timeout = int(parameters.get("hard-timeout", 1500))
-        cmd.extend(["--hard-timeout", str(timeout)])
+        cmd.extend(["--hard-timeout", str(hard_timeout)])
         cmd.extend(["--config", runner_config])
         cmd.append(image_file)
         if os.path.exists(input_file):
