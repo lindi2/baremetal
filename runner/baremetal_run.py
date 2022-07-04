@@ -23,8 +23,10 @@ class Trace:
     def __enter__(self):
         tooldir = pathlib.Path(__file__).parent.absolute()
         self.processes.append(subprocess.Popen(["{}/baremetal_logger.py".format(tooldir), "--listen-port", str(config["log_port"]), "--output-tar-gz", "{}/output.tar.gz".format(self.tmpdir), "--output", "{}/log.json".format(self.tmpdir)]))
+        time.sleep(1) # Allow logger to start
         return self
     def start_serial_capture(self):
+        tooldir = pathlib.Path(__file__).parent.absolute()
         self.processes.append(subprocess.Popen(["{}/serial_logger.py".format(tooldir), "--port", str(config["serial_port"]), "--output", "{}/serial.log".format(self.tmpdir)]))
     def start_network_capture(self):
         self.tcpdump = subprocess.Popen(["sudo", "ip", "netns", "exec", config["netns"], "tcpdump", "-i", config["iface"], "-s", "0", "-U", "-w", "{}/network.pcap".format(self.tmpdir)], stderr=subprocess.DEVNULL)
