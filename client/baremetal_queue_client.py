@@ -26,11 +26,25 @@ if __name__ == "__main__":
     parser.add_argument("--api-key", metavar="FILE", required=True, help="File with API key")
     parser.add_argument("--template", metavar="TEMPLATE", help="Use template TEMPLATE instead of uploading an image")
     parser.add_argument("--image", metavar="FILE", help="Disk image to run")
+    parser.add_argument("--timeout", default=300, metavar="SECONDS", type=int, help="Kill target after SECONDS seconds after most recent keepalive")
+    parser.add_argument("--hard-timeout", default=1500, metavar="SECONDS", type=int, help="Kill target after SECONDS seconds after most recent keepalive")
+    parser.add_argument("--cold-boot", action="store_true", help="Use cold boot instead of warm boot")
+    parser.add_argument("--allow-network", action="store_true", help="Allow access to Internet during test")
+    parser.add_argument("--video", action="store_true", help="Record video")
+
     args = parser.parse_args()
 
     with open(args.api_key) as f:
         apikey = f.read().strip()
 
+    parameters = {
+        "video": args.video,
+        "reboot": not args.cold_boot,
+        "lzop": True,
+        "allow-network": args.allow_network,
+        "timeout": args.timeout,
+        "hard-timeout": args.hard_timeout
+    }
 
     headers = {
         "X-API-KEY": apikey
@@ -72,7 +86,8 @@ if __name__ == "__main__":
 
     print("Creating new job")
     data = {
-        "machine": args.machine
+        "machine": args.machine,
+        "parameters": parameters,
     }
     r = requests.post(args.url, headers=headers, json=data)
     if r.status_code != 200:

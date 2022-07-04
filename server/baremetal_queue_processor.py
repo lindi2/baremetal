@@ -15,11 +15,14 @@ def process_jobs(args):
         image_file = os.path.join(job_dir, "image.lzo")
         ssh_socket = os.path.join(job_dir, "ssh.socket")
         input_file = os.path.join(job_dir, "input.tar")
+        parameters_file = os.path.join(job_dir, "parameters.json")
         stop_file = os.path.join(job_dir, "stop")
         results_file = os.path.join(job_dir, "results.tar")
         if not os.path.exists(state_file):
             continue
         if not os.path.exists(image_file):
+            continue
+        if not os.path.exists(parameters_file):
             continue
         with open(state_file) as f:
             if f.read() != "waiting":
@@ -28,35 +31,35 @@ def process_jobs(args):
             machine = f.read()
             if machine != args.machine:
                 continue
+        with open(parameters_file) as f:
+            parameters = json.loads(f.read())
         tooldir = pathlib.Path(__file__).parent.absolute()
         with open(state_file, "w+") as f:
             f.write("started")
         print("Processing {}".format(job_id))
         cwd = os.path.dirname(args.config)
         runner_config = os.path.join(cwd, config["machines"][args.machine]["config"])
-        cmd = ["{}/../runner/baremetal_run.py".format(tooldir),
-               "-o",
-               results_file,
-               "--stop-file",
-               stop_file,
-               "--video",
-               "--reboot",
-               "--lzop",
-               "--allow-network",
-               "--ssh-socket",
-               ssh_socket,
-               "--timeout",
-               "300",
-               "--hard-timeout",
-               "1500",
-               "--config",
-               runner_config,
-            image_file]
+        cmd = []
+        cmd.append("{}/../runner/baremetal_run.py".format(tooldir))
+        cmd.extend(["-o", results_file])
+        cmd.extend(["--stop-file", stop_file])
+        if parameters.get("video", False):
+            cmd.append("--video")
+        if parameters.get("reboot", True):
+            cmd.append("--reboot")
+        if parameters.get("lzop", True):
+            cmd.append("--lzop")
+        if parameters.get("allow-network", False):
+            cmd.append("--allow-network")
+        cmd.extend(["--ssh-socket", ssh_socket])
+        timeout = int(parameters.get("timeout", 300))
+        cmd.extend(["--timeout", str(timeout)])
+        hard_timeout = int(parameters.get("hard-timeout", 1500))
+        cmd.extend(["--hard-timeout", str(timeout)])
+        cmd.extend(["--config", runner_config])
+        cmd.append(image_file)
         if os.path.exists(input_file):
-            cmd += [
-                "--input",
-                input_file
-            ]
+            cmd.extend(["--input", input_file])
         subprocess.call(cmd)
         with open(state_file, "w+") as f:
             f.write("ready")

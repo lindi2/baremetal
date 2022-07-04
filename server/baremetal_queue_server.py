@@ -95,8 +95,11 @@ def create_app(args, config):
         job_dir = os.path.join(args.queue_dir, job_id)
         os.mkdir(job_dir)
         machine_file = os.path.join(job_dir, "machine")
+        parameters_file = os.path.join(job_dir, "parameters.json")
         with open(machine_file, "w") as f:
             f.write(request.json["machine"])
+        with open(parameters_file, "w") as f:
+            f.write(json.dumps(request.json["parameters"], indent=4))
         set_state(job_id, "created")
         print("Created job {}".format(job_id))
         return jsonify({"job_id": job_id})
@@ -230,6 +233,7 @@ def create_app(args, config):
         state_file = os.path.join(job_dir, "state")
         machine_file = os.path.join(job_dir, "machine")
         stop_file = os.path.join(job_dir, "stop")
+        parameters_file = os.path.join(job_dir, "parameters.json")
         if os.path.exists(input_file):
             os.unlink(input_file)
         if os.path.exists(stop_file):
@@ -238,6 +242,7 @@ def create_app(args, config):
         os.unlink(results_file)
         os.unlink(state_file)
         os.unlink(machine_file)
+        os.unlink(parameters_file)
         os.rmdir(job_dir)
         return jsonify({"status": "OK"})
 
