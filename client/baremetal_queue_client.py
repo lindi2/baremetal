@@ -101,10 +101,10 @@ if __name__ == "__main__":
         chunk = 0
         with open(args.image, "rb") as imagefile:
             while True:
-                print("chunk {}".format(chunk))
                 data = imagefile.read(args.chunk_size*1024*1024)
                 if data == b"":
                     break
+                print("chunk {}".format(chunk))
                 url = "{}/{}/upload-chunk/image".format(args.url, job_id)
                 r = requests.post(url, headers=headers, data=data)
                 assert r.status_code == 200
@@ -126,10 +126,10 @@ if __name__ == "__main__":
         chunk = 0
         with open(args.input, "rb") as inputfile:
             while True:
-                print("chunk {}".format(chunk))
                 data = inputfile.read(args.chunk_size*1024*1024)
                 if data == b"":
                     break
+                print("chunk {}".format(chunk))
                 url = "{}/{}/upload-chunk/input".format(args.url, job_id)
                 r = requests.post(url, headers=headers, data=data)
                 assert r.status_code == 200
