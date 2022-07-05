@@ -6,6 +6,20 @@ import os
 import pathlib
 import json
 
+def prepare_image(args):
+    tooldir = pathlib.Path(__file__).parent.absolute()
+    cwd = os.path.dirname(args.config)
+    runner_config = os.path.join(cwd, config["machines"][args.machine]["config"])
+    cmd = []
+    cmd.append("{}/../runner/baremetal_run.py".format(tooldir))
+    cmd.extend(["-o", "/dev/null"])
+    cmd.append("--lzop")
+    cmd.append("--prepare")
+    cmd.extend(["--target-state", args.target_state])
+    cmd.extend(["--config", runner_config])
+    cmd.append(args.prepare_image)
+    subprocess.call(cmd)
+
 def process_jobs(args):
     processed = 0
     for job_id in os.listdir(args.queue_dir):
@@ -60,6 +74,8 @@ def process_jobs(args):
         cmd.extend(["--timeout", str(timeout)])
         hard_timeout = int(parameters.get("hard-timeout", 1500))
         cmd.extend(["--hard-timeout", str(hard_timeout)])
+        if args.target_state is not None:
+            cmd.extend(["--target-state", args.target_state])
         cmd.extend(["--config", runner_config])
         cmd.append(image_file)
         if os.path.exists(input_file):
@@ -74,6 +90,8 @@ def process_jobs(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Process jobs from queue directory")
     parser.add_argument("--queue-dir", metavar="DIR", required=True, help="Directory for queue")
+    parser.add_argument("--target-state", metavar="DIR", help="Directory for target state")
+    parser.add_argument("--prepare-image", metavar="FILE", help="When idle, prepare FILE for execution")
     parser.add_argument("--config", required=True, help="Server configuration")
     parser.add_argument("--machine", required=True, help="Process only requests for a specific machine")
     args = parser.parse_args()
@@ -81,7 +99,14 @@ if __name__ == "__main__":
     with open(args.config) as f:
         config = json.load(f)
 
+    image_prepared = False
     while True:
         num_jobs = process_jobs(args)
         if num_jobs == 0:
-            time.sleep(10)
+            if args.target_state is not None and args.prepare_image is not None and not image_prepared:
+                prepare_image(args)
+                image_prepared = True
+            else:
+                time.sleep(10)
+        else:
+            image_prepared = False

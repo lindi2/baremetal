@@ -220,6 +220,8 @@ if __name__ == "__main__":
     parser.add_argument("--video", action="store_true", help="Record video")
     parser.add_argument("--ssh-socket", metavar="SOCKET", help="Listen on unix socket SOCKET for SSH connections")
     parser.add_argument("--stop-file", metavar="FILE", help="Stop job if FILE is created")
+    parser.add_argument("--target-state", metavar="DIRECTORY", help="Use DIRECTORY for storing target state")
+    parser.add_argument("--prepare", action="store_true", help="Prepare target for execution but do not actually execute payload")
     parser.add_argument("--config", required=True, help="Configuration file")
     parser.add_argument("image", metavar="FILE", help="Disk image to run")
     args = parser.parse_args()
@@ -227,7 +229,21 @@ if __name__ == "__main__":
     with open(args.config) as f:
         config = json.load(f)
 
-    set_power(False)
+    target_setup_needed = True
+
+    checksum = sha256(args.image)
+    if args.target_state:
+        state_file = os.path.join(args.target_state, config["name"])
+        if os.path.exists(state_file):
+            with open(state_file) as f:
+                prepared_checksum = f.read()
+            if checksum == prepared_checksum:
+                logger.info("Reusing previously prepared image")
+                target_setup_needed = False
+
+    if target_setup_needed:
+        set_power(False)
+
     with Trace() as t:
         if args.capture_serial:
             t.start_serial_capture()
@@ -242,21 +258,34 @@ if __name__ == "__main__":
         set_agent()
         if args.input:
             set_input(args.input)
-        inject_log_event("log Enabling network boot service")
-        set_netboot(True)
-        inject_log_event("log Turning power relay on")
-        set_power(True)
-        inject_log_event("log Starting the system for netboot")
-        start_with_netboot()
-        while t.netboot_exit_status() == None:
+        if target_setup_needed:
+            inject_log_event("log Enabling network boot service")
+            set_netboot(True)
+            inject_log_event("log Turning power relay on")
+            set_power(True)
+            inject_log_event("log Starting the system for netboot")
+            start_with_netboot()
+            while t.netboot_exit_status() == None:
+                time.sleep(1)
+            if t.netboot_exit_status() == -1:
+                inject_log_event("log Received command to stop the test")
+                set_power(False)
+                t.stop()
+                t.save(args.output)
+                sys.exit(0)
+            assert t.netboot_exit_status() == 0
+            if args.prepare:
+                logging.info("Preparing target for image is complete")
+                send_command("echo mem > /sys/power/state")
+                with open(state_file, "w+") as f:
+                    f.write(checksum)
+                    t.stop()
+                    sys.exit(0)
+        else:
+            press_power_button()
             time.sleep(1)
-        if t.netboot_exit_status() == -1:
-            inject_log_event("log Received command to stop the test")
-            set_power(False)
-            t.stop()
-            t.save(args.output)
-            sys.exit(0)
-        assert t.netboot_exit_status() == 0
+            os.unlink(state_file)
+
         if not args.reboot:
             inject_log_event("log Performing shutdown")
             send_command("echo o > /proc/sysrq-trigger")

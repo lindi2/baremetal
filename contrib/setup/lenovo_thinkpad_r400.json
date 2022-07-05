@@ -1,4 +1,5 @@
 {
+    "name": "lenovo_thinkpad_r400",
     "power_button_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/press?relay=1&duration=1'",
     "netboot_start_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/press?relay=1&duration=1'",
     "power_on_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/transmit?code=000101010001010101010111'",
