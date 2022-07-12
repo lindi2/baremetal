@@ -32,7 +32,7 @@ class Trace:
         self.tcpdump = subprocess.Popen(["sudo", "ip", "netns", "exec", config["netns"], "tcpdump", "-i", config["iface"], "-s", "0", "-U", "-w", "{}/network.pcap".format(self.tmpdir)], stderr=subprocess.DEVNULL)
     def start_ssh_forward(self, ssh_socket, target_host):
         netns = config["netns"]
-        self.processes.append(subprocess.Popen(["socat", f"UNIX-LISTEN:{ssh_socket},fork", f"EXEC:'sudo ip netns exec {netns} socat - TCP-CONNECT:{target_host}:22'"]))
+        self.processes.append(subprocess.Popen(["socat", f"UNIX-LISTEN:{ssh_socket},fork", f"EXEC:'sudo ip netns exec {netns} socat - TCP-CONNECT:{target_host}:22'"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
     def start_audio_capture(self):
         self.processes.append(subprocess.Popen(["parecord", "--file-format=wav", "--device", config["audio_device"], "{}/audio.wav".format(self.tmpdir)]))
         self.audio_start_time = time.time()
