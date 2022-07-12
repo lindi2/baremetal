@@ -280,14 +280,11 @@ if __name__ == "__main__":
             assert t.netboot_exit_status() == 0
             if args.prepare:
                 logging.info("Preparing target for image is complete")
-                send_command("echo mem > /sys/power/state")
                 with open(state_file, "w+") as f:
                     f.write(checksum)
                     t.stop()
                     sys.exit(0)
         else:
-            press_power_button()
-            time.sleep(1)
             os.unlink(state_file)
 
         if not args.reboot:
