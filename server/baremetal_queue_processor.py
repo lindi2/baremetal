@@ -15,6 +15,7 @@ def prepare_image(args):
     cmd.extend(["-o", "/dev/null"])
     cmd.append("--lzop")
     cmd.append("--prepare")
+    cmd.append("--reboot")
     cmd.extend(["--target-state", args.target_state])
     cmd.extend(["--config", runner_config])
     cmd.append(args.prepare_image)
