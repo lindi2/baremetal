@@ -304,8 +304,8 @@ if __name__ == "__main__":
         else:
             inject_log_event("log Turning power relay on")
             set_power(True)
-        inject_log_event("log Enabling network packet capture")
         if args.capture_network:
+            inject_log_event("log Enabling network packet capture")
             t.start_network_capture()
         if args.video:
             inject_log_event("log Enabling video recording")
