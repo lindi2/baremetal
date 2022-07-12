@@ -244,6 +244,10 @@ if __name__ == "__main__":
     if target_setup_needed:
         set_power(False)
 
+    if args.prepare and not target_setup_needed:
+        logger.info("Target is alread prepared, nothing to do")
+        sys.exit(0)
+
     with Trace() as t:
         if args.capture_serial:
             t.start_serial_capture()
