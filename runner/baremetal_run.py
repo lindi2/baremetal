@@ -146,7 +146,11 @@ def press_power_button():
 def start_with_netboot():
     logger.info("start_with_netboot")
     cwd = os.path.dirname(args.config)
-    subprocess.check_call(config["netboot_start_command"], shell=True, cwd=cwd)
+    try:
+        subprocess.check_call(config["netboot_start_command"], shell=True, cwd=cwd)
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 def set_agent():
     tooldir = pathlib.Path(__file__).parent.absolute()
@@ -268,7 +272,11 @@ if __name__ == "__main__":
             inject_log_event("log Turning power relay on")
             set_power(True)
             inject_log_event("log Starting the system for netboot")
-            start_with_netboot()
+            if not start_with_netboot():
+                inject_log_event("log start_with_netboot failed")
+                t.stop()
+                t.save(args.output)
+                sys.exit(0)
             while t.netboot_exit_status() == None:
                 time.sleep(1)
             if t.netboot_exit_status() == -1:
