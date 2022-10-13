@@ -25,7 +25,10 @@ class VideoOCR:
             "-update", "1",
             self.image
         ]
-        self.ffmpeg = subprocess.Popen(cmd)
+        self.ffmpeg = subprocess.Popen(cmd,
+                                       stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL,
+                                       stdin=subprocess.DEVNULL)
         return self
     def text(self):
         if not os.path.exists(self.image):
