@@ -6,6 +6,8 @@ import subprocess
 import requests
 import time
 import sys
+import datetime
+import shutil
 
 args = None
 
@@ -38,6 +40,11 @@ class VideoOCR:
             self.image,
             "stdout"
         ]
+        # image_stat = os.stat(self.image)
+        # saved_image = os.path.join("/tmp/",
+        #                            "pxe." + datetime.datetime.now().strftime("%s.%f") + ".png")
+        # shutil.copy(self.image,
+        #             saved_image)
         try:
             text = subprocess.check_output(cmd, encoding="utf-8", stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
