@@ -43,7 +43,7 @@ class VideoOCR:
         except subprocess.CalledProcessError:
             print("tesseract failed...")
             return ""
-        print("####")
+        print(f"#### {image_stat.st_size}")
         print(repr(text).replace("\\n", "\n"))
         return text
         
