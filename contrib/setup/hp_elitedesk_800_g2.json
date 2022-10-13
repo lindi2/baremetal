@@ -1,7 +1,7 @@
 {
     "name": "hp_elitedesk_800_g2",
-    "power_button_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/press?relay=2&duration=1'",
-    "netboot_start_command": "./trigger_pxe_boot_with_hp_bios.py --resolution 1920x1080 --device /dev/v4l/by-path/pci-0000:00:14.0-usb-0:3.4:1.0-video-index0 --ps2-url http://10.44.13.2/ps2 --power-url 'http://10.44.13.2/press?relay=2&duration=1'",
+    "power_button_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/press?relay=1&duration=1'",
+    "netboot_start_command": "./trigger_pxe_boot_with_hp_bios.py --resolution 1920x1080 --device /dev/v4l/by-path/pci-0000:00:14.0-usb-0:3.4:1.0-video-index0 --ps2-url http://10.44.13.2/ps2 --power-url 'http://10.44.13.2/press?relay=1&duration=1'",
     "power_on_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/transmit?code=000101010100010101010111'",
     "power_off_command": "curl -s -o /dev/null -X POST 'http://10.44.13.2/transmit?code=000101010100010101010100'",
     "link_status_command": "../switch/zyxel_gs1200-8_get_link_status.py --port 5 --password-file ../switch/zyxel.password http://192.168.1.3",
