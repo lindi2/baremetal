@@ -62,7 +62,8 @@ def press(keyname):
         "ESC": "76m",
         "F12": "07m",
         "ENTER": "5Am",
-        "DOWN": "72M"
+        "DOWN": "72M",
+        "A": "1Cm"
         
     }
     code = keymap[keyname]
